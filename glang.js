@@ -26,6 +26,15 @@ class Stack {
     concat(values){
         this.stack = this.stack.concat(values)
     }
+    pretty(){
+        const show = a => {
+            if(a.type == "list") return `[${a.value.map(show).join(", ")}]`
+            if(a.type == "string") return `"${a.value}"`
+            if(a.type == "char") return `'${a.value}'`
+            return `${a.value}`
+        }
+        return `[${this.stack.map(show).join(", ")}]`
+    }
 }
 
 

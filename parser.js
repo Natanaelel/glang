@@ -5,6 +5,7 @@ const patterns = [
 	{"type": "string", "pattern": /^"(.*?)("|$)/, "process": m => ({"token": m[1], "length": m[0].length})},
 	{"type": "char", "pattern": /^'(.)/, "process": m => ({"token": m[1], "length": 2})},
 	{"type": "special", "pattern": /^[{}]/},
+	{"type": "func", "pattern": /^\S+/},
 	{"type": "func", "pattern": /^./},
 ]
 
@@ -100,7 +101,7 @@ function parseFunc(tokens){
 	return [func, tokens]
 }
 
-module.exports = code => parse(tokenize(code))
+module.exports = code => parse(tokenize(code).filter(a => a.type != "whitespace"))
 
 // let code = "1 2 3 * +"
 
