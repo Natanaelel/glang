@@ -1,3 +1,15 @@
+const Stack = require("./stack.js")
+
+const defs = require("./defs.js")
+
+
+const toInt = a => ({"type": "int", "value": parseInt(a)})
+const toFloat = a => ({"type": "float", "value": parseFloat(a)})
+const toString = a => ({"type": "string", "value": `${a}`})
+const toChar = a => ({"type": "char", "value": `${a}`[0]})
+const toList = a => ({"type": "list", "value": a})
+
+
 const isNumber = token => token.type == "int" || token.type == "float"
 const isInt = token => token.type == "int"
 const isString = token => token.type == "string"
@@ -62,6 +74,13 @@ const arity = (func, input, output) => {
     return stack => {
         let args = stack.pop(input)
         let result = func(...args)
+        if(result === undefined){
+            let error_msg = `can't use function "${func.name}" on ${args}`
+            console.error(error_msg)
+            console.error(args)
+            throw new Error(error_msg)
+            return
+        }
         if(output == 1){
             stack.push(result)
         }
@@ -71,6 +90,80 @@ const arity = (func, input, output) => {
     }
 }
 
+const arity_c = (func, num_inputs, return_type) => {
+    return stack => {
+        let args = stack.pop(num_inputs).map(e => e.value)
+        let result = func(...args)
+        stack.push({
+            "type": return_type,
+            "value": glang_parse(result)
+        })
+    }
+}
+
+const glang_parse = (obj) => {
+    if(`${obj}` === obj){
+        return {
+            "type": "string",
+            "value": obj
+        }
+    }
+    if(/^\d+$/.test(`${obj}`)){
+        return {
+            "type": "int",
+            "value": obj
+        }
+    }
+    if(/^\d+\.\d+$/.test(`${obj}`)){
+        return {
+            "type": "float",
+            "value": obj
+        }
+    }
+    if(Array.isArray(obj)){
+        return {
+            "type": "list",
+            "value": obj.map(glang_parse)
+        }
+    }
+    throw new Error(`could't parse ${obj}`)
+}
+
+const range = (a) => {
+    if(isNumber(a)){
+        return toList(defs.range(a.value).map(toInt))
+    }
+}
+const split = (a, b) => {
+    if(isString(a) && isStringy(b)){
+        return toList(defs.split_string(a.value, b.value).map(toString))
+    }
+}
+const map = (stack, self) => {
+    let b = stack.pop()
+    let a = stack.pop()
+    
+    if(a.type != "list" || b.type != "block") return
+    
+    let result = []
+
+    for(let element of a.value){
+        // let stack = new Stack()
+        stack.push(element)
+        for(let command of b.value){
+            // console.log(command)
+            self.doCommand(command)
+        }
+        result.push(stack.pop())
+    }
+    stack.push({
+        "type": "list",
+        "value": result
+    })
+
+}
+
+
 module.exports = {
     "+": arity(plus, 2, 1),
     "-": arity(minus, 2, 1),
@@ -78,4 +171,7 @@ module.exports = {
     "/": arity(divide, 2, 1),
     "@": apply,
     "r": arity(repeat, 2, 1),
+    "range": arity(range, 1, 1),
+    "split": arity(split, 2, 1),
+    "map": map
 }

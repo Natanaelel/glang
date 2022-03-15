@@ -1,6 +1,6 @@
 const { Glang } = require("./glang.js")
 
-let code = '1 2 3 r 9 + '
+let code = '1 10 3 r { 1 + } map'
 // stack = [7]
 
 
@@ -14,7 +14,4 @@ for(let command of g.commands){
 }
 
 console.log(g)
-// console.log(g.)
-console.log(g.stack)
-// console.log(JSON.stringify(g.stack.stack, null, 2))
 console.log(g.stack.pretty())
