@@ -30,6 +30,9 @@ class Stack {
         }
         return `[${this.stack.map(show).join(", ")}]`
     }
+    clear(){
+        this.stack = []
+    }
 }
 
 module.exports = Stack

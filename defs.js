@@ -17,6 +17,19 @@ const range = (a) => Array(a).fill().map((_, i) => i + 1)
 const split_string = (a, b) => a.split(b)
 const split_element = (a, b) => 0
 
+const max_by = (arr, func) => {
+    if(arr.length == 0) return
+    let max = arr[0]
+    let max_val = func(max)
+    for(let el of arr){
+        if(func(el) > max_val){
+            max = el
+            max_val = func(el)
+        }
+    }
+    return max
+}
+
 
 module.exports = {
     add_nums,
@@ -35,5 +48,6 @@ module.exports = {
     length,
     abs,
     range,
-    split_string
+    split_string,
+    max_by
 }
