@@ -5,7 +5,13 @@ let code = `
 
 `
 code = `
-100 range { dup 2 / swap  2.0 / - 0 = } filter
+100 range { dup 2 / swap  2.0 / - 0 = } filter 100 range {,} zipwith transpose dump {+} zipwith 2 slice {max} map sum 
+`
+
+code = `
+
+17 {dup 2 % {3 * 1 + } { 2 / } ifelse} 10 iteraten
+
 `
 // stack = [7]
 
@@ -14,6 +20,10 @@ code = `
 
 let g = new Glang(code)
 
+a = 0
+b = 1
+
+
 
 for(let command of g.commands){
 	g.doCommand(command)
@@ -21,3 +31,4 @@ for(let command of g.commands){
 
 
 console.log(g.stack.pretty())
+console.log(g.stack.top())

@@ -10,8 +10,9 @@ const toChar = a => ({"type": "char", "value": `${a}`[0]})
 const toList = a => ({"type": "list", "value": a})
 
 
-const isNumber = token => token.type == "int" || token.type == "float"
 const isInt = token => token.type == "int"
+const isFloat = token => token.type == "float"
+const isNumber = token => token.type == "int" || token.type == "float"
 const isString = token => token.type == "string"
 const isChar = token => token.type == "char"
 const isStringy = token => token.type == "string" || token.type == "char"
@@ -19,8 +20,10 @@ const isList = token => token.type == "list"
 const isListy = token => token.type == "list" || token.type == "string"
 const isBlock = token => token.type == "block"
 
-const applyTo = (func, ret_type) => (a, b) => ({"type": ret_type, "value": func(a.value, b.value)})
-
+const error = (name, ...params) => {
+    console.error(`function ${name} doesn't take parameters ${params.map(e => e.type).join(", ")}`)
+    // process.exit()
+}
 
 const applyBlock = (block, stack, self) => {
     for(let command of block.value){
@@ -74,6 +77,14 @@ const divide = (a, b) => {
     if(isList(a) && isList(b)) return toList(a.value.map((e, i) => divide(e, b[i])))
     throw new Error(`can't use ${"/"} on ${a.type} and ${b.type}`)
 }
+const mod = (a, b) => {
+    if(isInt(a) && isInt(b)) return toInt(a.value % b.value)
+    if(isNumber(a) && isNumber(b)) return toFloat(a.value % b.value)
+    if(isNumber(a) && isList(b)) return toList(b.value.map(e => mod(e, a)))
+    if(isList(a) && isNumber(b)) return toList(a.value.map(e => mod(e, b)))
+    if(isList(a) && isList(b)) return toList(a.value.map((e, i) => mod(e, b[i])))
+    throw new Error(`can't use % on ${a.type} and ${b.type}`)
+}
 const apply = (stack, self) => {
     let func = stack.pop()
     for(let command of func.value){
@@ -95,11 +106,12 @@ const arity = (func, input, output) => {
         let args = stack.pop(input)
         let result = func(...args)
         if(result === undefined){
-            let error_msg = `can't use function "${func.name}" on ${args}`
-            console.error(error_msg)
-            console.error(args)
-            throw new Error(error_msg)
-            return
+            // let error_msg = `can't use function "${func.name}" on ${args}`
+            // console.error(error_msg)
+            // console.error(args)
+            // throw new Error(error_msg)
+            // return
+            error(func.name, ...args)
         }
         if(output == 1){
             stack.push(result)
@@ -110,81 +122,46 @@ const arity = (func, input, output) => {
     }
 }
 
-const arity_c = (func, num_inputs, return_type) => {
-    return stack => {
-        let args = stack.pop(num_inputs).map(e => e.value)
-        let result = func(...args)
-        stack.push({
-            "type": return_type,
-            "value": glang_parse(result)
-        })
-    }
-}
 
-const glang_parse = (obj) => {
-    if(`${obj}` === obj){
-        return {
-            "type": "string",
-            "value": obj
-        }
-    }
-    if(/^\d+$/.test(`${obj}`)){
-        return {
-            "type": "int",
-            "value": obj
-        }
-    }
-    if(/^\d+\.\d+$/.test(`${obj}`)){
-        return {
-            "type": "float",
-            "value": obj
-        }
-    }
-    if(Array.isArray(obj)){
-        return {
-            "type": "list",
-            "value": obj.map(glang_parse)
-        }
-    }
-    throw new Error(`could't parse ${obj}`)
-}
 
 const range = (a) => {
     if(isNumber(a)){
         return toList(defs.range(a.value).map(toInt))
     }
+    error("range", a)
 }
 const map = (stack, self) => {
     let b = stack.pop()
     let a = stack.pop()
     
-    if(a.type != "list" || b.type != "block") return
-    
-    let result = []
+    if(a.type == "list" && b.type == "block"){
+        let result = []
 
-    for(let element of a.value){
-        // let stack = new Stack()
-        stack.push(element)
-        for(let command of b.value){
-            // console.log(command)
-            self.doCommand(command)
+        for(let element of a.value){
+            // let stack = new Stack()
+            stack.push(element)
+            for(let command of b.value){
+                // console.log(command)
+                self.doCommand(command)
+            }
+            result.push(stack.pop())
         }
-        result.push(stack.pop())
+        stack.push({
+            "type": "list",
+            "value": result
+        })
+        return
     }
-    stack.push({
-        "type": "list",
-        "value": result
-    })
-
+    error("map", a, b)
 }
 const filter = (stack, self) => {
-    let a = stack.pop()
     let b = stack.pop()
+    let a = stack.pop()
     if(isList(a) && isBlock(b)){
         let result = []
         for(let value of a.value){
             stack.push(value)
-            applyBlock(block, stack, self)
+            applyBlock(b, stack, self)
             let pred = stack.pop()
             if(isTruthy(pred)){
                 result.push(value)
@@ -193,7 +170,28 @@ const filter = (stack, self) => {
         stack.push(toList(result))
         return
     }
+    error("filter", a, b)
 }
+
+const zipwith = (stack, self) => {
+    let c = stack.pop()
+    let b = stack.pop()
+    let a = stack.pop()
+    if(isList(a) && isList(b) && isBlock(c)){
+        let length = Math.min(a.value.length, b.value.length)
+        let result = []
+        for(let i = 0; i < length; i++){
+            stack.push(a.value[i])
+            stack.push(b.value[i])
+            applyBlock(c, stack, self)
+            result.push(stack.pop())
+        }
+        stack.push(toList(result))
+        return
+    }
+    error("zipwith", a, b, c)
+}
+
 const dump = (stack) => {
     let a = stack.pop()
     if(!isList(a)) return stack.push(a)
@@ -256,11 +254,84 @@ const equals = (a, b) => {
     console.error(b)
     throw new Error(" whtat type ?!?!?!")
 }
+const transpose = (a) => {
+    if(isList(a) && isList(a.value[0])){ // is at least 2d
+        let min_length = Math.min(...a.value.map(e => e.value.length))
+        let raw_transposed = Array(min_length).fill().map((_,i)=>a.value.map(r=>r.value[i]))
+        let glangified = toList(raw_transposed.map(toList))
+        return glangified
+    }
+    return
+}
+const slice = (a, b) => {
+    if(!isNumber(b)) return
+    if(isList(a)){
+        let result = []
+        for(let i = 0; i < a.value.length; i += b.value){
+            result.push(a.value.slice(i, i + b.value))
+        }
+        return toList(result.map(toList))
+    }
+    if(isString(a)){
+        let result = []
+        for(let i = 0; i < a.value.length; i += b.value){
+            result.push(a.value.slice(i, i + b.value))
+        }
+        return toList(result.map(toString))
+    }
+}
+
+const sum = (a) => {
+    if(isList(a)){
+        if(isInt(a.value[0])){
+            return toInt(a.value.reduce((x, y) => x + y.value, 0))
+        }
+        if(isFloat(a.value[0])){
+            return toFloat(a.value.reduce((x, y) => x + y.value, 0))        }
+    }
+}
+const iteraten = (stack, self) => {
+    // any, func, iterations
+    let c = stack.pop()
+    let b = stack.pop()
+    let a = stack.pop()
+    if(isBlock(b) && isInt(c)){
+        let val = a
+        let result = [val]
+        console.log(c)
+        for(let i = 0; i < c.value; i++){
+            stack.push(val)
+            applyBlock(b, stack, self)
+            val = stack.pop()
+            result.push(val)
+        }
+        stack.push(toList(result))
+        return
+    }
+    error("iteraten", a, b, c)
+}
+const ifelse = (stack, self) => {
+    // "true {yes} {no} ifelse" => yes 
+    let c = stack.pop() // func, false
+    let b = stack.pop() // func, true
+    let a = stack.pop() // val
+    if(isBlock(b) && isBlock(c)){
+        if(isTruthy(a)){
+            applyBlock(b, stack, self)
+        }
+        else{
+            applyBlock(c, stack, self)
+        }
+        return
+    }
+    error("ifelse", a, b, c)
+}
 module.exports = {
     "+": arity(plus, 2, 1),
     "-": arity(minus, 2, 1),
     "*": arity(multiply, 2, 1),
     "/": arity(divide, 2, 1),
+    "%": arity(mod, 2, 1),
     "@": apply,
     "r": arity(repeat, 2, 1),
     "range": arity(range, 1, 1),
@@ -280,5 +351,11 @@ module.exports = {
     "split": arity(split, 2, 1),
     "pair": arity(pair, 2, 1),
     ",": arity(pair, 2, 1),
-    "=": arity(equals, 2, 1)
+    "=": arity(equals, 2, 1),
+    zipwith,
+    "transpose": arity(transpose, 1, 1),
+    "slice": arity(slice, 2, 1),
+    "sum": arity(sum, 1, 1),
+    iteraten,
+    ifelse,
 }

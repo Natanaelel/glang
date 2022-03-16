@@ -20,18 +20,22 @@ class Stack {
     concat(values){
         this.stack = this.stack.concat(values)
     }
-    pretty(){
+    pretty(self = this.stack){
         const show = a => {
+            if(a === undefined || a === null) return `<nil>`
             if(a.type == "list") return `[${a.value.map(show).join(", ")}]`
             if(a.type == "string") return `"${a.value}"`
             if(a.type == "char") return `'${a.value}'`
             if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
             return `${a.value}`
         }
-        return `[${this.stack.map(show).join(", ")}]`
+        return Array.isArray(self) ? `[${self.map(show).join(", ")}]` : show(self)
     }
     clear(){
         this.stack = []
+    }
+    top(){
+        return this.pretty(this.peek())
     }
 }
 
