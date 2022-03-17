@@ -27,9 +27,7 @@ b = 1
 
 
 
-for(let command of g.commands){
-	g.doCommand(command)
-}
+g.run()
 
 
 console.log(g.stack.pretty())

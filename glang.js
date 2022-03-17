@@ -27,6 +27,11 @@ class Glang {
         console.error(`"${command.value}" has no function, skipping`)
         // throw new Error(`${command.value} has no function`)
     }
+    run(){
+        for(let command of this.commands){
+            this.doCommand(command)
+        }
+    }
 }
 
 module.exports = {Glang}
