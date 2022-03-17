@@ -9,6 +9,14 @@ const toString = a => ({"type": "string", "value": `${a}`})
 const toChar = a => ({"type": "char", "value": `${a}`[0]})
 const toList = a => ({"type": "list", "value": a})
 
+const deepClone = a => {
+    if(a.type == "int") return toInt(a.value)
+    if(a.type == "float") return toFloat(a.value)
+    if(a.type == "string") return toString(a.value)
+    if(a.type == "list") return toList(a.value.map(deepClone))
+    throw new Error("what type in deepclone what?!")
+}
+
 
 const isInt = token => token.type == "int"
 const isFloat = token => token.type == "float"
@@ -24,6 +32,8 @@ const error = (name, ...params) => {
     console.error(`function ${name} doesn't take parameters ${params.map(e => e.type).join(", ")}`)
     // process.exit()
 }
+
+
 
 const applyBlock = (block, stack, self) => {
     for(let command of block.value){
@@ -83,7 +93,15 @@ const mod = (a, b) => {
     if(isNumber(a) && isList(b)) return toList(b.value.map(e => mod(e, a)))
     if(isList(a) && isNumber(b)) return toList(a.value.map(e => mod(e, b)))
     if(isList(a) && isList(b)) return toList(a.value.map((e, i) => mod(e, b[i])))
-    throw new Error(`can't use % on ${a.type} and ${b.type}`)
+    throw new Error(`can't use ${"%"} on ${a.type} and ${b.type}`)
+}
+const power = (a, b) => {
+    if(isInt(a) && isInt(b)) return toInt(a.value ** b.value)
+    if(isNumber(a) && isNumber(b)) return toFloat(a.value ** b.value)
+    if(isNumber(a) && isList(b)) return toList(b.value.map(e => mod(e, a)))
+    if(isList(a) && isNumber(b)) return toList(a.value.map(e => mod(e, b)))
+    if(isList(a) && isList(b)) return toList(a.value.map((e, i) => mod(e, b[i])))
+    throw new Error(`can't use ${"^"} on ${a.type} and ${b.type}`)
 }
 const apply = (stack, self) => {
     let func = stack.pop()
@@ -203,7 +221,8 @@ const length = (a) => {
     if(isNumber(a)) return toInt(a.value.toString().length)
 
 }
-const dup = (a) => [a, a]
+const dup = (a) => [deepClone(a), deepClone(a)]
+const over = (a, b) => [a, b, deepClone(a)]
 const max = (a) => defs.max_by(a.value, e => e.value)
 const min = (a) => defs.max_by(a.value, e => -e.value)
 const wrap = (stack) => {
@@ -217,10 +236,12 @@ const string = (a) => {
 }
 const swap = (a, b) => [b, a]
 const take = (a, b) => {
-    return toList(a.value.slice(0, b.value))
+    if(isList(a) && isInt(b)) return toList(a.value.slice(0, b.value))
+    if(isString(a) && isInt(b)) return toString(a.value.slice(0, b.value))
 }
 const drop = (a, b) => {
-    return toList(a.value.slice(b.value))
+    if(isList(a) && isInt(b)) return toList(a.value.slice(b.value))
+    if(isString(a) && isInt(b)) return toString(a.value.slice(b.value))
 }
 const head = (a) => {
     if(isString(a)) return toString(a.value[0])
@@ -244,16 +265,29 @@ const equals = (a, b) => {
     if(isNumber(a) && isNumber(b)) return a.value == b.value ? true_val : false_val
     if(a.type != b.type) return false_val
     // from now, types are same
+
+    if(isString(a)) return a.value === b.value ? true_val : false_val
+
     if(isList(a)){
         if(a.value.length != b.value.length) return false_val
         for(let i = 0; i < a.value.length; i++){
-            if(!equals(a.value[i], b.value[i])) return false_val
+            if(equals(a.value[i], b.value[i]).value == 0) return false_val
         }
         return true_val
     }
     console.error(a)
     console.error(b)
     throw new Error(" whtat type ?!?!?!")
+}
+const less_than = (a, b) => {
+    let true_val = toInt(1)
+    let false_val = toInt(0)
+    if(isNumber(a) && isNumber(b)) return a.value < b.value ? true_val : false_val
+}
+const greater_than = (a, b) => {
+    let true_val = toInt(1)
+    let false_val = toInt(0)
+    if(isNumber(a) && isNumber(b)) return a.value > b.value ? true_val : false_val
 }
 const transpose = (a) => {
     if(isList(a) && isList(a.value[0])){ // is at least 2d
@@ -322,6 +356,30 @@ const iteraten = (stack, self) => {
     }
     error("iteraten", a, b, c)
 }
+const iteratewhile = (stack, self) => {
+    let c = stack.pop() // condition
+    let b = stack.pop() // iter
+    let a = stack.pop() // value
+    if(isBlock(b) && isBlock(c)){
+        let val = a
+        let result = []
+        const doCheck = () => {
+            stack.push(val)
+            applyBlock(c, stack, self)
+            let pred_result = stack.pop()
+            return isTruthy(pred_result)
+        }
+        while(doCheck()){
+            result.push(val)
+            stack.push(val)
+            applyBlock(b, stack, self)
+            val = stack.pop()
+        }   
+        stack.push(toList(result))
+        return
+    }
+    error("iteratewhile", a, b, c)
+}
 const ifelse = (stack, self) => {
     // "true {yes} {no} ifelse" => yes 
     let c = stack.pop() // func, false
@@ -338,12 +396,171 @@ const ifelse = (stack, self) => {
     }
     error("ifelse", a, b, c)
 }
+const pop = (stack) => {
+    stack.pop()
+}
+const reverse = (a) => {
+    if(isList(a)) return toList(a.value.reverse())
+    if(isString(a)) return toString(a.value.split("").reverse().join(""))
+}
+const zip = (a, b) => {
+    if(isList(a) && isList(b)){
+        let min_length = Math.min(a.value.length, b.value.length)
+        return toList(a.value.slice(0, min_length).map((e, i) => toList([e, b.value[i]])))
+    }
+}
+const hex = (a) => {
+    if(isString(a)){
+        return toInt(parseInt(a.value, 16))
+    }
+}
+const odd = (a) => {
+    if(isNumber(a)) return toInt(a.value % 2 === 1 ? 1 : 0)
+}
+const even = (a) => {
+    if(isNumber(a)) return toInt(a.value % 2 === 0 ? 1 : 0)
+}
+const rotate = (a, b) => {
+    if(!isInt(b)) return
+    if(isList(a)){
+        let length = a.value.length
+        let steps = ((b.value % length) + length) % length // posistive mod length
+        return toList(a.value.slice(steps).concat(a.value.slice(0, steps)))
+    }
+    if(isString(a)){
+        let length = a.value.length
+        let steps = ((b.value % length) + length) % length // posistive mod length
+        return toString(a.value.slice(steps).concat(a.value.slice(0, steps)))
+    }
+}
+const maxby = (stack, self) => {
+    let b = stack.pop() // arr
+    let a = stack.pop() // func
+
+    if(isList(a) && isBlock(b)){
+        let result = defs.max_by(a.value, e => {
+            stack.push(e)
+            applyBlock(b, stack, self)
+            return stack.pop().value
+        })
+        stack.push(result)
+        return
+    }
+
+
+    error("maxby", a, b)
+}
+const minby = (stack, self) => {
+    let b = stack.pop() // arr
+    let a = stack.pop() // func
+
+    if(isList(a) && isBlock(b)){
+        let result = defs.min_by(a.value, e => {
+            stack.push(e)
+            applyBlock(b, stack, self)
+            return stack.pop().value
+        })
+        stack.push(result)
+        return
+    }
+
+
+    error("minby", a, b)
+}
+const range_from_to = (a, b) => {
+    if(isInt(a) && isInt(b)){
+        let result = []
+        let diff = a.value < b.value ? 1 : -1
+        for(let i = a.value; i != b.value; i += diff){
+            result.push(toInt(i))
+        }
+        result.push(toInt(b.value))
+        return toList(result)
+    }
+}
+const divisors = (a) => {
+    if(isInt(a)){
+        return toList(defs.range(a.value).filter(e => a.value % e == 0).map(toInt))
+    }
+}
+const at = (a, b) => { // modular indexing
+    if(isList(a) && isInt(b)){
+        let length = a.value.length
+        return a.value[(b.value % length + length) % length]
+    }
+}
+const fold = (stack, self) => {
+    let b = stack.pop() // block
+    let a = stack.pop() // arr
+
+    if(isList(a) && isBlock(b)){
+        if(a.value.length == 0){ // if empty, push 0
+            stack.push(toInt(0))
+            return
+        }
+        let val = a.value[0]
+        for(let i = 1; i < a.value.length; i++){
+            stack.push(val)
+            stack.push(a.value[i])
+            applyBlock(b, stack, self)
+            val = stack.pop()
+        }
+        stack.push(val)
+        return
+    }
+
+    error("fold", a, b)
+}
+const scan = (stack, self) => {
+    let b = stack.pop() // block
+    let a = stack.pop() // arr
+
+    if(isList(a) && isBlock(b)){
+        if(a.value.length == 0){ // if empty, push []
+            stack.push(toList([]))
+            return
+        }
+        let val = a.value[0]
+        let result = [val]
+        for(let i = 1; i < a.value.length; i++){
+            stack.push(val)
+            stack.push(a.value[i])
+            applyBlock(b, stack, self)
+            val = stack.pop()
+            result.push(val)
+        }
+        stack.push(toList(result))
+        return
+    }
+
+    error("scan", a, b)
+}
+const int = (a) => {
+    if(isList(a)) return
+    return toInt(a.value)
+}
+const uniq = (a) => {
+    if(isList(a)){
+        if(a.value.every(isInt)){
+            return toList([...new Set(a.value.map(e => e.value))].map(toInt))
+        }
+        if(a.value.every(isFloat)){
+            return toList([...new Set(a.value.map(e => e.value))].map(toFloat))
+        }
+        if(a.value.every(isString)){
+            return toList([...new Set(a.value.map(e => e.value))].map(toString))
+        }
+    }
+}
+
+
 module.exports = {
     "+": arity(plus, 2, 1),
     "-": arity(minus, 2, 1),
     "*": arity(multiply, 2, 1),
     "/": arity(divide, 2, 1),
     "%": arity(mod, 2, 1),
+    "^": arity(power, 2, 1),
     "@": apply,
     "r": arity(repeat, 2, 1),
     "range": arity(range, 1, 1),
@@ -351,6 +568,7 @@ module.exports = {
     filter,
     "length": arity(length, 1, 1),
     "dup": arity(dup, 1, 2),
+    "over": arity(over, 2, 3),
     "max": arity(max, 1, 1),
     "min": arity(min, 1, 1),
     dump,
@@ -365,11 +583,30 @@ module.exports = {
     "pair": arity(pair, 2, 1),
     ",": arity(pair, 2, 1),
     "=": arity(equals, 2, 1),
+    "<": arity(less_than, 2, 1),
+    ">": arity(greater_than, 2, 1),
     zipwith,
     "transpose": arity(transpose, 1, 1),
     "slice": arity(slice, 2, 1),
     "sum": arity(sum, 1, 1),
     "product": arity(product, 1, 1),
     iteraten,
+    iteratewhile,
     ifelse,
+    pop,
+    "reverse": arity(reverse, 1, 1),
+    "zip": arity(zip, 2, 1),
+    "hex": arity(hex, 1, 1),
+    "odd": arity(odd, 1, 1),
+    "even": arity(even, 1, 1),
+    "rotate": arity(rotate, 2, 1),
+    maxby,
+    minby,
+    "to": arity(range_from_to, 2, 1),
+    "divisors": arity(divisors, 1, 1),
+    "at": arity(at, 2, 1),
+    fold,
+    scan,
+    "int": arity(int, 1, 1),
+    "uniq": arity(uniq, 1, 1),
 }
