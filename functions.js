@@ -205,6 +205,7 @@ const length = (a) => {
 }
 const dup = (a) => [a, a]
 const max = (a) => defs.max_by(a.value, e => e.value)
+const min = (a) => defs.max_by(a.value, e => -e.value)
 const wrap = (stack) => {
     let stack_content = [...stack.stack]
     stack.clear()
@@ -287,7 +288,18 @@ const sum = (a) => {
             return toInt(a.value.reduce((x, y) => x + y.value, 0))
         }
         if(isFloat(a.value[0])){
-            return toFloat(a.value.reduce((x, y) => x + y.value, 0))        }
+            return toFloat(a.value.reduce((x, y) => x + y.value, 0))
+        }
+    }
+}
+const product = (a) => {
+    if(isList(a)){
+        if(isInt(a.value[0])){
+            return toInt(a.value.reduce((x, y) => x * y.value, 1))
+        }
+        if(isFloat(a.value[0])){
+            return toFloat(a.value.reduce((x, y) => x * y.value, 1))
+        }
     }
 }
 const iteraten = (stack, self) => {
@@ -340,6 +352,7 @@ module.exports = {
     "length": arity(length, 1, 1),
     "dup": arity(dup, 1, 2),
     "max": arity(max, 1, 1),
+    "min": arity(min, 1, 1),
     dump,
     wrap,
     "string": arity(string, 1, 1),
@@ -356,6 +369,7 @@ module.exports = {
     "transpose": arity(transpose, 1, 1),
     "slice": arity(slice, 2, 1),
     "sum": arity(sum, 1, 1),
+    "product": arity(product, 1, 1),
     iteraten,
     ifelse,
 }

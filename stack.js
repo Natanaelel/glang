@@ -4,9 +4,16 @@ class Stack {
     }
     pop(num = 0){
         if(num == 0){
+            if(this.stack.length == 0){
+                console.error("popping from empty stack, returning 0")
+                return {"type": "int", "value": 0}
+            }
             return this.stack.pop()
         }
-        return this.stack.splice(-num)
+        if(this.stack.length >= num) return this.stack.splice(-num)
+        let result = []
+        for(let i = 0; i < num; i++) result.push(this.pop())
+        return result
     }
     peek(num = 0){
         if(num == 0){

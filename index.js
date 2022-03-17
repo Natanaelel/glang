@@ -13,10 +13,12 @@ code = `
 17 {dup 2 % {3 * 1 + } { 2 / } ifelse} 10 iteraten
 
 `
-// stack = [7]
+code = `
 
+"Ut tempora neque labore dolorem magnam non t&empora.,Magnam voluptatem &sit quiquia sit dolore.,Non tempor&a aliquam etincidunt quiquia labore neque ut.,Velit dolor& aliquam modi sed."
 
-// 1 2 3 + 4 5 6
+', split { '& split {length} map} map transpose {dup min swap max ,} map dump {+} zipwith product
+`
 
 let g = new Glang(code)
 
