@@ -17,7 +17,8 @@ code = `
 ', split {int} map { , max} scan uniq length
 
 `
-// code = `"0CF70000010900010C0197" 10 rotate 4 slice 4 take {hex} map reverse dump even swap dup 2 % 2 16 ^ * - wrap product 100.0 / `
+code = `"0CF70000010900010C0197" 
+10 rotate 4 slice 4 take {hex} map reverse dump even swap dup 2 % 2 16 ^ * - wrap product 100.0 / `
 
 "10r4s4thmrdesd2%16^*-wp100/"
 "T._4ô4£HR`ÈsD2%16o*-Pт/J0+"

@@ -1,11 +1,12 @@
 class Lazylist {
-    constructor(func, get_length){
-        this.func = func// func = (this, index) => element
-        this.get_length = get_length || (() => this.toArray().length)
+    constructor(func, get_size, size = Infinity){
+        this.func = func // func = (this, index) => element
+        this.get_size = get_size || (() => this.to_array().length)
         this.list = []
+        this.size = size
     }
     at(index){
-        if(index >= this.get_length()) throw new RangeError("index too large")
+        if(index >= this.get_size()) throw new RangeError("index too large")
         if(index < 0) throw new RangeError("index too small")
         
         if(index in this.list){
@@ -18,7 +19,7 @@ class Lazylist {
     }
     map(mapping_func){
         const get_at = (self, index) => mapping_func(this.at(index))
-        return new Lazylist(get_at, this.get_length)
+        return new Lazylist(get_at, this.get_size)
     }
     filter(predicate){
         let filtered = []
@@ -33,48 +34,37 @@ class Lazylist {
                 }
             return filtered[index]
         }
-        return new Lazylist(get_at, this.get_length)
+        return new Lazylist(get_at, this.get_size)
     }
     head(){
         return this.at(0)
     }
     tail(){
         const get_at = (self, index) => this.at(index + 1)
-        return new Lazylist(get_at, () => this.get_length() - 1)
+        return new Lazylist(get_at, () => this.get_size() - 1)
+    }
+    init(){
+        const get_at = (self, index) => this.at(index)
+        return new Lazylist(get_at, () => this.get_size() - 1)
     }
     take(num){
         const get_at = (self, index) => this.at(index)
-        return new Lazylist(get_at, () => Math.min(num, this.get_length()))
+        return new Lazylist(get_at, () => Math.min(num, this.get_size()))
     }
-    takeWhile(predicate){
-        let filtered = []
-        let last_index = 0
-        let final_length = this.get_length()
-        const get_at = (self, index) => {
-            if(index >= filtered.length){
-                for(let _i = filtered.length; _i <= index; _i++){
-                    let do_push = true
-                    while(!predicate(this.at(last_index))){
-                        console.log(final_length, ", ", last_index)
-                        final_length = Math.min(final_length, last_index)
-                        console.log(final_length, ": ", last_index)
-                        
-                        last_index += 1
-                        do_push = false
-                    }
-                    if(do_push) filtered.push(this.at(last_index))
-                    if(do_push) last_index += 1
-                }
+    take_while(predicate){ // recurively defined
+        const get_at = (self, index) => {    
+            if(predicate(this.at(index))){
+                if(index == 0) return this.at(index) // base case here
+                if(predicate(this.at(index - 1))) return this.at(index) // recursion here
+                throw new RangeError("index too large")
             }
-            return filtered[index]
+            throw new RangeError("index too large")
         }
-        console.log(final_length)
-        console.log(this.get_length())
-        return new Lazylist(get_at, () => Math.min(final_length, this.get_length()))
+        return new Lazylist(get_at, this.get_size)
     }
     drop(num){
         const get_at = (self, index) => this.at(index + num)
-        return new Lazylist(get_at, () => this.get_length() - num)
+        return new Lazylist(get_at, () => this.get_size() - num)
     }
     call(func){
         let result = null
@@ -85,7 +75,7 @@ class Lazylist {
             result = func(this)
             return result.at(index)
         }
-        return new Lazylist(get_at, this.get_length)
+        return new Lazylist(get_at, this.get_size)
     }
     concat(other){
         const get_at = (self, index) => {
@@ -94,23 +84,26 @@ class Lazylist {
             }
             catch(e){
                 if(!(e instanceof RangeError)) throw e
-                return other.at(index - this.get_length())
+                return other.at(index - this.get_size())
             }
         }
-        return new Lazylist(get_at, () => this.get_length() + other.get_length())
+        return new Lazylist(get_at, () => this.get_size() + other.get_size())
     }
-    toArray(){
+    to_array(){
         let arr = []
-        let i = 0
-        while(true){
+        this.size = this.get_size()
+        for(let i = 0; i < this.size; i++){
             try{
-                arr.push(this.at(i++))
+                arr.push(this.at(i))
             }catch(e){
                 if(!(e instanceof RangeError)) throw e
+                this.size = i
+                this.get_size = () => this.size
                 return arr
             }
         }
-        // return Array(this.get_length()).fill().map((_, i) => this.at(i))
+        return arr
+        // return Array(this.get_size()).fill().map((_, i) => this.at(i))
     }
     static repeat(element){
         return new Lazylist(() => element, () => Infinity)
@@ -143,7 +136,17 @@ class Lazylist {
 const is_prime = n => {
     if(n <= 1) return false
     if(n <= 3) return true
-    for(let i = 2; i < n; i++){
+    let limit = Math.ceil(Math.sqrt(n))
+    for(let i = 2; i <= limit; i++){
+        if(n % i == 0) return false
+    }
+    return true
+}
+const is_prime2 = n => {
+    if(n <= 1) return false
+    if(n <= 3) return true
+    let limit = Math.ceil(Math.sqrt(n))
+    for(let i = 2; i <= limit; i++){
         if(n % i == 0) return false
     }
     return true
@@ -154,26 +157,12 @@ const prims = (a) => {
     let xs = a.drop(1)
     return Lazylist.from([p]).concat(xs.filter(x => x % p != 0).call(prims))
 }
-pgen = prims(Lazylist.naturals.drop(1))
-/*
-// console.time("a")
-// console.log(pgen.take(1000).toArray())
-// console.timeEnd("a")
+// pgen = prims(Lazylist.naturals.drop(1))
 
-// console.time("b")
-// console.log(Lazylist.naturals.filter(is_prime).take(1000).toArray())
-// console.timeEnd("b")
-*/
 const collatz = n => [n / 2, n * 3 + 1][n % 2]
 
-let seq = Lazylist.iterate(collatz, 12345)
 
-let arr = seq.takeWhile(x => x != 1)
+let seq = Lazylist.iterate(collatz, 9_780_657_630).take_while(x => x != 1)
 
-
-// console.log(arr.toArray())
-// console.log(arr.toArray().length)
-
-const primes = Lazylist.naturals.filter(is_prime)
-
-console.log8prime
+console.log(seq.drop(1000).to_array())
+console.log(seq.to_array().length)
