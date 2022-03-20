@@ -142,15 +142,6 @@ const is_prime = n => {
     }
     return true
 }
-const is_prime2 = n => {
-    if(n <= 1) return false
-    if(n <= 3) return true
-    let limit = Math.ceil(Math.sqrt(n))
-    for(let i = 2; i <= limit; i++){
-        if(n % i == 0) return false
-    }
-    return true
-}
 
 const prims = (a) => {
     let p = a.head()
@@ -162,7 +153,14 @@ const prims = (a) => {
 const collatz = n => [n / 2, n * 3 + 1][n % 2]
 
 
-let seq = Lazylist.iterate(collatz, 9_780_657_630).take_while(x => x != 1)
+// let seq = Lazylist.iterate(collatz, 9_780_657_630).take_while(x => x != 1)
 
-console.log(seq.drop(1000).to_array())
-console.log(seq.to_array().length)
+// console.log(seq.drop(1000).to_array())
+// console.log(seq.to_array().length)
+
+
+nums = Lazylist.cycle([1,2,3,4,5])
+
+console.log(nums.map(x=>x*2).at(999999999999999999999999999))
+
+console.log(Lazylist.naturals.take(100000000000000000000).map(x=>x*3+1).drop(100000000000).take(100).to_array())
