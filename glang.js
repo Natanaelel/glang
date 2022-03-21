@@ -17,20 +17,22 @@ class Glang {
     doCommand(command){
         if(isLiteral(command)){
             this.stack.push(command)
-            return
+            return this
         }
         let func = functions[command.value]
         if(func){
             func(this.stack, this)
-            return
+            return this
         }
         console.error(`"${command.value}" has no function, skipping`)
         // throw new Error(`${command.value} has no function`)
+        return this
     }
     run(){
         for(let command of this.commands){
             this.doCommand(command)
         }
+        return this
     }
 }
 

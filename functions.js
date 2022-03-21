@@ -2,6 +2,11 @@ const Stack = require("./stack.js")
 
 const defs = require("./defs.js")
 
+const { XMLHttpRequest } = require("xmlhttprequest")
+
+// const { Lazylist } = require("@natanalel/lazylist")
+const { Lazylist } = require("./infinitely_lazy/lazylist.js")
+
 
 const toInt = a => ({"type": "int", "value": parseInt(a)})
 const toFloat = a => ({"type": "float", "value": parseFloat(a)})
@@ -111,7 +116,6 @@ const apply = (stack, self) => {
 }
 
 const repeat = (a, b) => {
-    console.log(a,b)
     return {
         "type": "list",
         "value": Array(b.value).fill(a)
@@ -159,7 +163,6 @@ const map = (stack, self) => {
             // let stack = new Stack()
             stack.push(element)
             for(let command of b.value){
-                // console.log(command)
                 self.doCommand(command)
             }
             result.push(stack.pop())
@@ -344,7 +347,6 @@ const iteraten = (stack, self) => {
     if(isBlock(b) && isInt(c)){
         let val = a
         let result = [val]
-        console.log(c)
         for(let i = 0; i < c.value; i++){
             stack.push(val)
             applyBlock(b, stack, self)
@@ -553,6 +555,18 @@ const uniq = (a) => {
     }
 }
 
+const web_get = (url) => {
+    if(!isString(url)) return
+    let request = new XMLHttpRequest()
+    request.open("GET", url.value, false)
+    request.send()
+    if(request.status != 200){
+        console.error(request.status)
+    }
+    let text = request.responseText
+    return toString(text ?? "")
+}
+
 
 module.exports = {
     "+": arity(plus, 2, 1),
@@ -609,4 +623,5 @@ module.exports = {
     scan,
     "int": arity(int, 1, 1),
     "uniq": arity(uniq, 1, 1),
+    "get": arity(web_get, 1, 1),
 }
