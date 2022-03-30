@@ -11,7 +11,6 @@ const { Lazylist } = require("./infinitely_lazy/lazylist.js")
 const toInt = a => ({"type": "int", "value": parseInt(a)})
 const toFloat = a => ({"type": "float", "value": parseFloat(a)})
 const toString = a => ({"type": "string", "value": `${a}`})
-const toChar = a => ({"type": "char", "value": `${a}`[0]})
 const toList = a => ({"type": "list", "value": a})
 
 const deepClone = a => {
@@ -38,6 +37,11 @@ const error = (name, ...params) => {
     // process.exit()
 }
 
+const stringify = (a) => {
+    if(isString(a)) return a.value
+    if(isNumber(a)) return toString(a.value).value
+    if(isList(a)) return `[${a.value.map(x => stringify(x)).join(", ")}]`
+}
 
 
 const applyBlock = (block, stack, self) => {
@@ -250,12 +254,27 @@ const head = (a) => {
     if(isString(a)) return toString(a.value[0])
     if(isList(a)) return a.value[0]
 }
+const tail = (a) => {
+    if(isString(a)) return toString(a.value.slice(1))
+    if(isList(a)) return toList(a.value.slice(1))
+}
+const init = (a) => {
+    if(isString(a)) return toString(a.value.slice(0, -1))
+    if(isList(a)) return toList(a.value.slice(0, -1))
+}
 const last = (a) => {
     if(isString(a)) return toString(a.value[a.value.length - 1])
     if(isList(a)) return a.value[a.value.length - 1]
 }
 const split = (a, b) => {
     if(isString(a) && isString(b)) return toList(a.value.split(b.value).map(toString))
+}
+const join = (a, b) => {
+    if(isString(b)){
+        if(isString(a)) return a
+        if(isList(a)) return toString(a.value.map(x => join(x, b).value).join(b.value))
+        return toString(stringify(a))
+    }
 }
 const pair = (a, b) => {
     return toList([a, b])
@@ -566,7 +585,34 @@ const web_get = (url) => {
     let text = request.responseText
     return toString(text ?? "")
 }
+const sign = (a) => {
+    if(isNumber(a)) return toInt(a.value == 0 ? 0 : a.value > 0 ? 1 : -1)
+}
+const not = (a) => {
+    return toInt(isTruthy(a) ? 1 : 0)
+}
+const count = (stack, self) => {
+    let b = stack.pop() // block or element
+    let a = stack.pop() // arr or string
 
+    if(isList(a) || isString(a)){
+        let count_num = 0
+        for(let i = 1; i < a.value.length; i++){
+            if(isBlock(b)){
+                stack.push(a.value[i])
+                applyBlock(b, stack, self)
+                val = stack.pop()
+                if(isTruthy(val)) count_num++
+            }else{
+                if(isTruthy(equals(a.value[i], b))) count_num++
+            }
+        }
+        stack.push(toInt(count_num))
+        return
+    }
+
+    error("count", a, b)
+}
 
 module.exports = {
     "+": arity(plus, 2, 1),
@@ -576,7 +622,7 @@ module.exports = {
     "%": arity(mod, 2, 1),
     "^": arity(power, 2, 1),
     "@": apply,
-    "r": arity(repeat, 2, 1),
+    "repeat": arity(repeat, 2, 1),
     "range": arity(range, 1, 1),
     map,
     filter,
@@ -592,8 +638,11 @@ module.exports = {
     "take": arity(take, 2, 1),
     "drop": arity(drop, 2, 1),
     "head": arity(head, 1, 1),
+    "tail": arity(tail, 1, 1),
+    "init": arity(init, 1, 1),
     "last": arity(last, 1, 1),
     "split": arity(split, 2, 1),
+    "join": arity(join, 2, 1),
     "pair": arity(pair, 2, 1),
     ",": arity(pair, 2, 1),
     "=": arity(equals, 2, 1),
@@ -624,4 +673,8 @@ module.exports = {
     "int": arity(int, 1, 1),
     "uniq": arity(uniq, 1, 1),
     "get": arity(web_get, 1, 1),
+    "sign": arity(sign, 1, 1),
+    "not": arity(not, 1, 1),
+    count,
+
 }

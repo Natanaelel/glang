@@ -29,9 +29,16 @@ class Stack {
     }
     pretty(self = this.stack){
         const show = a => {
-            if(a === undefined || a === null) return `<nil>`
+            if(a === undefined || a === null) return `nil`
             if(a.type == "list") return `[${a.value.map(show).join(", ")}]`
-            if(a.type == "string") return `"${a.value}"`
+            if(a.type == "string") return `"${a.value.replace(/.|\s/g, m => {
+                if(m == "\n") return "\\n"
+                if(m == "\r") return "\\r"
+                if(m == "\f") return "\\f"
+                if(m == '"') return '\\"'
+                if(m == "\\") return "\\\\"
+                return m
+            })}"`
             if(a.type == "char") return `'${a.value}'`
             if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
             return `${a.value}`

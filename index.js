@@ -15,12 +15,13 @@ function test_programs(){
 
 let program = `
 1 2 3 dup wrap reverse dump
-"https://gurka.se/" get 100 take
+"https://gurka.se/" get 100 take dup '  split  '
+
 `
-program = `
- 10 range 2 *
-"https://emkc.org/api/v2/piston/runtimes" get
-`
+// program = `
+//  10 range 2 *
+// "https://emkc.org/api/v2/piston/runtimes" get
+// `
 
 let g = new Glang(program)
 g.run()

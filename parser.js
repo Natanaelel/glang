@@ -3,7 +3,7 @@ const patterns = [
 	{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": parseFloat(m[0]), "length": m[0].length})},
 	{"type": "int", "pattern": /^\d+/, "process": m => ({"token": parseInt(m[0]), "length": m[0].length})},
 	{"type": "string", "pattern": /^"(.*?)("|$)/, "process": m => ({"token": m[1], "length": m[0].length})},
-	{"type": "string", "pattern": /^'(.)/, "process": m => ({"token": m[1], "length": 2})},
+	{"type": "string", "pattern": /^'(.|\s)/, "process": m => ({"token": m[1], "length": 2})},
 	{"type": "special", "pattern": /^[{}]/},
 	{"type": "func", "pattern": /^[a-z_]+/i},
 	{"type": "func", "pattern": /^./},
