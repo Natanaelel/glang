@@ -1,0 +1,1 @@
+43 35 49 49 31 37 35 wrap 128 range { over + 128 % } map chr { sum } map { chars { "ABCDEFGHIJKLMNOPQRSTUVEXYZ abcdefghijklmnopqrstuvexyz" swap elem} map } map

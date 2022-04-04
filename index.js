@@ -1,7 +1,8 @@
 const { Glang } = require("./glang.js")
+const fs = require("fs")
 
 function test_programs(){
-	let programs = require("fs").readFileSync("./test_programs.txt").toString().split(/\s*\*\*\*\s*/).filter(x => x != "")
+	let programs = fs.readFileSync("./test_programs.txt").toString().split(/\s*\*\*\*\s*/).filter(x => x != "")
 
 	for(const program of programs){
 		let g = new Glang(program)
@@ -13,20 +14,19 @@ function test_programs(){
 	}
 }
 
-let program = `
-1 2 3 dup wrap reverse dump
-"https://gurka.se/" get 100 take dup '  split  '
+let program_path = process.argv[2] || "./test.glang"
+let program = fs.readFileSync(program_path).toString()
 
-`
-// program = `
-//  10 range 2 *
-// "https://emkc.org/api/v2/piston/runtimes" get
-// `
+
+
 
 let g = new Glang(program)
+
+console.log(g)
 g.run()
 
 console.log(g.stack.pretty())
 console.log("")
 console.log(g.stack.top())
-
+console.log("")
+// console.log(g.stack.raw())

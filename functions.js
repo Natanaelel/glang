@@ -340,6 +340,7 @@ const slice = (a, b) => {
 
 const sum = (a) => {
     if(isList(a)){
+        return a.value.reduce((x, y) => plus(x, y))
         if(isInt(a.value[0])){
             return toInt(a.value.reduce((x, y) => x + y.value, 0))
         }
@@ -613,6 +614,48 @@ const count = (stack, self) => {
 
     error("count", a, b)
 }
+const index = (a, b) => {
+    if(isList(a)){
+        for(let i = 0; i < a.value.length; i++){
+            if(equals(a.value[i], b).value == 1) return toInt(i)
+        }
+        return toInt(-1)
+    }
+    if(isString(a)){
+        for(let i = 0; i < a.value.length; i++){
+            if(equals(toString(a.value[i]), b).value == 1) return toInt(i)
+        }
+        return toInt(-1)
+    }
+    return
+}
+const chr = (a) => {
+    if(isNumber(a)) return toString(String.fromCharCode(Math.floor(a.value)))
+    if(isList(a)) return toList(a.value.map(chr))
+}
+const ord = (a) => {
+    if(isNumber(a)) return toString(String.fromCharCode(Math.floor(a.value)))
+    if(isList(a)) return toList(a.value.map(ord))
+}
+const chars = (a) => {
+    if(isString(a)) return toList([...a.value].map(toString))
+}
+const elem = (a, b) => {
+    if(isList(a)){
+        for(let i = 0; i < a.value.length; i++){
+            if(equals(a.value[i], b).value == 1) return toInt(1)
+        }
+        return toInt(0)
+    }
+    if(isString(a)){
+        for(let i = 0; i < a.value.length; i++){
+            if(equals(toString(a.value[i]), b).value == 1) return toInt(1)
+        }
+        return toInt(0)
+    }
+    return
+}
+
 
 module.exports = {
     "+": arity(plus, 2, 1),
@@ -676,5 +719,9 @@ module.exports = {
     "sign": arity(sign, 1, 1),
     "not": arity(not, 1, 1),
     count,
-
+    "index": arity(index, 2, 1),
+    "chr": arity(chr, 1, 1),
+    "ord": arity(ord, 1, 1),
+    "chars": arity(chars, 1, 1),
+    "elem": arity(elem, 2, 1),
 }

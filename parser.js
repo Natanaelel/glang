@@ -1,19 +1,30 @@
+const fromEscapedChar = char => {
+	return {
+		"\\n": "\n",
+		"\\t": "\t",
+		"\\\\": "\\",
+		"\\f": "\f",
+		"\\r": "\r",
+		"\\b": "\b",
+	}[char] ?? char
+}
+
 const patterns = [
     {"type": "whitespace", "pattern": /^\s+/},
 	{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": parseFloat(m[0]), "length": m[0].length})},
 	{"type": "int", "pattern": /^\d+/, "process": m => ({"token": parseInt(m[0]), "length": m[0].length})},
 	{"type": "string", "pattern": /^"(.*?)("|$)/, "process": m => ({"token": m[1], "length": m[0].length})},
-	{"type": "string", "pattern": /^'(.|\s)/, "process": m => ({"token": m[1], "length": 2})},
+	{"type": "string", "pattern": /^'(\\.|.|\s)/, "process": m => ({"token": fromEscapedChar(m[1]), "length": m[0].length})},
 	{"type": "special", "pattern": /^[{}]/},
 	{"type": "func", "pattern": /^[a-z_]+/i},
-	{"type": "func", "pattern": /^./},
 ]
 
 
-function tokenize(code){
+function tokenize(code, mode = null, verbose = false){
     let tokens = []
+	let patterns_to_use = mode == "verbose" ? patterns : patterns.concat([{"type": "func", "pattern": /^./}])
 	W: while(code.length > 0){
-        for(let {type, pattern, process} of patterns){
+        for(let {type, pattern, process} of patterns_to_use){
             if(m = code.match(pattern)){
                 if(process){
                     let {token, length} = process(m)
@@ -52,7 +63,7 @@ function parse(tokens){
 			continue W
 		}
 		if(type == "char"){
-            parsed.push(token)
+            parsed.push(fromEscapedChar(token))
 			continue W
 		}
 		if(type == "string"){
@@ -101,8 +112,15 @@ function parseFunc(tokens){
 	return [func, tokens]
 }
 
-module.exports = code => parse(tokenize(code).filter(a => a.type != "whitespace"))
-
+// module.exports = code => parse(tokenize(code).filter(a => a.type != "whitespace"))
+module.exports = (code, verbose = false) => {
+	code = code.replace(/\r/g,"")
+	let tokenized = tokenize(code)
+	if(verbose) console.log(tokenized)
+	let parsed = parse((tokenized.filter(a => a.type != "whitespace")))
+	if(verbose) console.log(parsed)
+	return parsed
+}
 // let code = "1 2 3 * +"
 
 // console.log(tokenize(code))

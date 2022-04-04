@@ -51,6 +51,13 @@ class Stack {
     top(){
         return this.pretty(this.peek())
     }
+    raw(){
+        const show = e => {
+            if(e.type == "list") return e.value.map(show)
+            return e.type
+        }
+        return JSON.stringify(this.stack.map(show), null, 2)
+    }
 }
 
 module.exports = Stack
