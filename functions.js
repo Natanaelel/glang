@@ -237,6 +237,14 @@ const wrap = (stack) => {
     stack.clear()
     stack.push(toList(stack_content))
 }
+const wrapN = (stack) => {
+    let num = stack.pop()
+    if(!isNumber(num)) return error("wrapN", num)
+    // let num_num = 
+    // let wrapped = stack.stack.slice(-num_num)
+    // stack.stack.splice(num_num, num_num)
+    stack.push(toList(stack.pop(parseInt(num.value))))
+}
 const string = (a) => {
     if(isList(a)) return toString(String.fromCharCode(...a.value.map(e => e.value)))
     if(isInt(a)) return toString(String.fromCharCode(a.value))
@@ -676,6 +684,7 @@ module.exports = {
     "min": arity(min, 1, 1),
     dump,
     wrap,
+    wrapN,
     "string": arity(string, 1, 1),
     "swap": arity(swap, 2, 2),
     "take": arity(take, 2, 1),

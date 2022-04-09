@@ -16,7 +16,7 @@ function test_programs(){
 
 let program_path = process.argv[2] || "./test.glang"
 let program = fs.readFileSync(program_path).toString()
-
+program = "10 range reverse dump 4 wrapN"
 
 
 
