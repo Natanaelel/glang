@@ -1,5 +1,5 @@
 const Stack = require("./stack.js")
-const functions = require("./functions.js")
+const { functions, functions_compact} = require("./functions.js")
 const parse = require("./parser.js")
 
 const isLiteral = token => ["int", "float", "char", "string", "block"].includes(token.type)
@@ -8,10 +8,15 @@ const isLiteral = token => ["int", "float", "char", "string", "block"].includes(
 
 
 class Glang {
-    constructor(code){
+    /**
+     * @param {String} code
+     * @param { {verbose: bool} } settings
+     */
+    constructor(code, settings = {} ){
         this.code = code
+        this.settings = settings
         this.stack = new Stack()
-        this.commands = parse(code)
+        this.commands = parse(this.code, this.settings)
         this.output = console.log
     }
     doCommand(command){
@@ -19,7 +24,7 @@ class Glang {
             this.stack.push(command)
             return this
         }
-        let func = functions[command.value]
+        let func = ([...command.value].length == 1 ? functions_compact: functions)[command.value]
         if(func){
             func(this.stack, this)
             return this

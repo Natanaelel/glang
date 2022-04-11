@@ -598,7 +598,7 @@ const sign = (a) => {
     if(isNumber(a)) return toInt(a.value == 0 ? 0 : a.value > 0 ? 1 : -1)
 }
 const not = (a) => {
-    return toInt(isTruthy(a) ? 1 : 0)
+    return toInt(isTruthy(a) ? 0 : 1)
 }
 const count = (stack, self) => {
     let b = stack.pop() // block or element
@@ -642,7 +642,12 @@ const chr = (a) => {
     if(isList(a)) return toList(a.value.map(chr))
 }
 const ord = (a) => {
-    if(isNumber(a)) return toString(String.fromCharCode(Math.floor(a.value)))
+    if(isString(a)){
+        if([...a.value].length == 1){ // return single int
+            return toInt(a.value.charCodeAt())
+        }
+        return toList(a.value.map(x => toInt(x.charCodeAt()))) // return codepoint list
+    }
     if(isList(a)) return toList(a.value.map(ord))
 }
 const chars = (a) => {
@@ -665,7 +670,7 @@ const elem = (a, b) => {
 }
 
 
-module.exports = {
+const functions = {
     "+": arity(plus, 2, 1),
     "-": arity(minus, 2, 1),
     "*": arity(multiply, 2, 1),
@@ -673,6 +678,7 @@ module.exports = {
     "%": arity(mod, 2, 1),
     "^": arity(power, 2, 1),
     "@": apply,
+    "apply": apply,
     "repeat": arity(repeat, 2, 1),
     "range": arity(range, 1, 1),
     map,
@@ -734,3 +740,73 @@ module.exports = {
     "chars": arity(chars, 1, 1),
     "elem": arity(elem, 2, 1),
 }
+const functions_compact = {
+    "+": functions["+"],
+    "-": functions["-"],
+    "*": functions["*"],
+    "/": functions["/"],
+    "%": functions["%"],
+    "^": functions["^"],
+    "@": functions["apply"],
+    "R": functions["repeat"],
+    "m": functions["map"],
+    "f": functions["filter"],
+    "L": functions["length"],
+    ":": functions["dup"],
+    ";": functions["over"],
+    "▲": functions["max"],
+    "▼": functions["min"],
+    "`": functions["dump"],
+    "w": functions["wrap"],
+    "W": functions["wrapN"],
+    "W": functions["string"],
+    "s": functions["string"],
+    "$": functions["swap"],
+    "↑": functions["take"],
+    "↓": functions["drop"],
+    "←": functions["head"],
+    "→": functions["last"],
+    "h": functions["init"],
+    "t": functions["tail"],
+    "x": functions["split"],
+    "J": functions["join"],
+    ",": functions["pair"],
+    "=": functions["="],
+    "<": functions["<"],
+    ">": functions[">"],
+    "z": functions["zipWith"],
+    "T": functions["transpose"],
+    "C": functions["slice"],
+    "Σ": functions["sum"],
+    "Π": functions["product"],
+    "~": functions["pop"],
+    "?": functions["ifelse"],
+    "↔": functions["reverse"],
+    "Z": functions["zip"],
+    "H": functions["hex"],
+    "H": functions["hex"],
+    "↻": functions["rotate"],
+    "►": functions["maxby"],
+    "◄": functions["minby"],
+    "…": functions["to"],
+    "u": functions["uniq"],
+    "¬": functions["not"],
+    "#": functions["count"],
+    "c": functions["chr"],
+    "o": functions["ord"],
+    "⊂": functions["elem"],
+    "divisors": arity(divisors, 1, 1),
+    fold,
+    scan,
+    "int": arity(int, 1, 1),
+    "get": arity(web_get, 1, 1),
+    "sign": arity(sign, 1, 1),
+    "index": arity(index, 2, 1),
+    "chars": arity(chars, 1, 1),
+    "odd": arity(odd, 1, 1),
+    "even": arity(even, 1, 1),
+    iteraten,
+    iteratewhile,
+}
+
+module.exports = {functions, functions_compact}

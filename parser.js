@@ -9,22 +9,23 @@ const fromEscapedChar = char => {
 	}[char] ?? char
 }
 
-const patterns = [
-    {"type": "whitespace", "pattern": /^\s+/},
-	{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": parseFloat(m[0]), "length": m[0].length})},
-	{"type": "int", "pattern": /^\d+/, "process": m => ({"token": parseInt(m[0]), "length": m[0].length})},
-	{"type": "string", "pattern": /^"(.*?)("|$)/, "process": m => ({"token": m[1], "length": m[0].length})},
-	{"type": "string", "pattern": /^'(\\.|.|\s)/, "process": m => ({"token": fromEscapedChar(m[1]), "length": m[0].length})},
-	{"type": "special", "pattern": /^[{}]/},
-	{"type": "func", "pattern": /^[a-z_]+/i},
-]
 
+function tokenize(code, settings = {}){
 
-function tokenize(code, mode = null, verbose = false){
-    let tokens = []
-	let patterns_to_use = mode == "verbose" ? patterns : patterns.concat([{"type": "func", "pattern": /^./}])
+	const patterns = [
+		{"type": "whitespace", "pattern": /^\s+/},
+		{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": parseFloat(m[0]), "length": m[0].length})},
+		{"type": "int", "pattern": /^\d+/, "process": m => ({"token": parseInt(m[0]), "length": m[0].length})},
+		{"type": "string", "pattern": /^"(.*?)("|$)/, "process": m => ({"token": m[1], "length": m[0].length})},
+		{"type": "string", "pattern": /^'(\\.|.|\s)/, "process": m => ({"token": fromEscapedChar(m[1]), "length": m[0].length})},
+		{"type": "special", "pattern": /^[{}]/},
+		{"type": "func", "pattern": settings.verbose ? /^[a-z_]+/i : /^./},
+	]
+	patterns.push({"type": "func", "pattern": /^./},)
+	let tokens = []
+
 	W: while(code.length > 0){
-        for(let {type, pattern, process} of patterns_to_use){
+        for(let {type, pattern, process} of patterns){
             if(m = code.match(pattern)){
                 if(process){
                     let {token, length} = process(m)
@@ -113,14 +114,9 @@ function parseFunc(tokens){
 }
 
 // module.exports = code => parse(tokenize(code).filter(a => a.type != "whitespace"))
-module.exports = (code, verbose = false) => {
-	code = code.replace(/\r/g,"")
-	let tokenized = tokenize(code)
-	if(verbose) console.log(tokenized)
+module.exports = (code, settings = {}) => {
+	code = code.replace(/\r/g, "")
+	let tokenized = tokenize(code, settings)
 	let parsed = parse((tokenized.filter(a => a.type != "whitespace")))
-	if(verbose) console.log(parsed)
 	return parsed
 }
-// let code = "1 2 3 * +"
-
-// console.log(tokenize(code))

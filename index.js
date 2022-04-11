@@ -16,13 +16,13 @@ function test_programs(){
 
 let program_path = process.argv[2] || "./test.glang"
 let program = fs.readFileSync(program_path).toString()
-program = "10 range reverse dump 4 wrapN"
+// program = "10 range reverse dump 4 wrapN"
 
 
 
-let g = new Glang(program)
-
-console.log(g)
+// let g = new Glang(program, {"verbose": true})
+let g = new Glang(program, {"verbose": false})
+// console.log(g)
 g.run()
 
 console.log(g.stack.pretty())
@@ -30,3 +30,5 @@ console.log("")
 console.log(g.stack.top())
 console.log("")
 // console.log(g.stack.raw())
+
+
