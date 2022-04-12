@@ -26,7 +26,7 @@ class Glang {
             if(this.settings.debug) this.log(this, command)
             return this
         }
-        let func = ([...command.value].length == 1 ? functions_compact: functions)[command.value]
+        let func = ([...command.value].length == 1 ? functions_compact : functions)[command.value]
         if(func){
             func(this.stack, this)
             if(this.settings.debug) this.log(this, command)

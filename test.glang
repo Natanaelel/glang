@@ -16,6 +16,24 @@
 "XRAY
 "YEN
 
-W'\nJ'\n2R""Jx{'\nx}m`t{;""J${;:#}m▼$~}m
-W'\nJ'\n2R""Jx{'\nx}m`t{;""J${#}M▼}m
-W¶"Words:"x`¶t{{#}M▼}M
+// W'\nJ'\n2R""Jx{'\nx}m`t{;""J${;:#}m▼$~}m
+// W'\nJ'\n2R""Jx{'\nx}m`t{;""J${#}M▼}m
+// W¶"Words:"x`¶t{{#}M▼}M
+// 7
+// {:2%{3*1+}{2/}?}{1≠}¡L
+
+W~
+
+// 10 3
+// 1$R${:t$Σ1R+}$!{←}m
+// // 1$R${:t$Σ1R+}$!T←
+"boat, boat = true
+"toab, boat = true
+"oabt, toab = true
+"a, aa = false
+"zzz, zzzzzzzz = false
+"zyyyzzzz, yyzzzzzy = true
+"sleepy, pyels = false
+"p, p = true
+
+W{" = "x↔`", "x`{S$S=}@,}m

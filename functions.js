@@ -129,7 +129,7 @@ const repeat = (a, b) => {
 
 const arity = (func, input, output) => {
     return stack => {
-        let args = stack.pop(input)
+        let args = input == 0 ? [] : stack.pop(input)
         let result = func(...args)
         if(result === undefined){
             error(func.name, ...args)
@@ -317,6 +317,7 @@ const drop = (a, b) => {
 const head = (a) => {
     if(isString(a)) return toString(a.value[0])
     if(isList(a)) return a.value[0]
+    if(isInt(a)) return toInt(a.value - 1)
 }
 const tail = (a) => {
     if(isString(a)) return toString(a.value.slice(1))
@@ -329,6 +330,7 @@ const init = (a) => {
 const last = (a) => {
     if(isString(a)) return toString(a.value[a.value.length - 1])
     if(isList(a)) return a.value[a.value.length - 1]
+    if(isInt(a)) return toInt(a.value + 1)
 }
 const split = (a, b) => {
     if(isString(a) && isString(b)) return toList(a.value.split(b.value).map(toString))
@@ -364,6 +366,9 @@ const equals = (a, b) => {
     console.error(a)
     console.error(b)
     throw new Error(" whtat type ?!?!?!")
+}
+const not_equals = (a, b) => {
+    return toInt(equals(a, b).value == 1 ? 0 : 1)
 }
 const less_than = (a, b) => {
     let true_val = toInt(1)
@@ -430,12 +435,12 @@ const iteraten = (stack, self) => {
     let a = stack.pop()
     if(isBlock(b) && isInt(c)){
         let val = a
-        let result = [val]
+        let result = []
         for(let i = 0; i < c.value; i++){
+            result.push(val)
             stack.push(val)
             applyBlock(b, stack, self)
             val = stack.pop()
-            result.push(val)
         }
         stack.push(toList(result))
         return
@@ -740,6 +745,17 @@ const words = (a) => {
     if(isNumber(a)) return toString(a.value)
     if(isList(a)) return toString(a.value.map(stringify).join(" "))
 }
+const sort = (a) => {
+    if(isString(a)) return toString([...a.value].sort().join(""))
+    if(!isList(a)) return
+    if(a.value.every(isString)) return toList(a.value.map(({value}) => value).sort().map(toString))
+    if(a.value.every(isInt)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(toInt))
+    if(a.value.every(isFloat)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(isFloat))
+}
+const dice = (...a) => {
+    return toInt(1 + Math.floor(Math.random() * 6))
+}
+
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -774,8 +790,8 @@ const functions = {
     "split": arity(split, 2, 1),
     "join": arity(join, 2, 1),
     "pair": arity(pair, 2, 1),
-    ",": arity(pair, 2, 1),
-    "=": arity(equals, 2, 1),
+    "equals": arity(equals, 2, 1),
+    "not_equals": arity(not_equals, 2, 1),
     "<": arity(less_than, 2, 1),
     ">": arity(greater_than, 2, 1),
     zipwith,
@@ -813,6 +829,8 @@ const functions = {
     "elem": arity(elem, 2, 1),
     "lines": arity(lines, 1, 1),
     "words": arity(words, 1, 1),
+    "sort": arity(sort, 1, 1),
+    "dice": arity(dice, 0, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -845,7 +863,8 @@ const functions_compact = {
     "x": functions["split"],
     "J": functions["join"],
     ",": functions["pair"],
-    "=": functions["="],
+    "=": functions["equals"],
+    "≠": functions["not_equals"],
     "<": functions["<"],
     ">": functions[">"],
     "z": functions["zipWith"],
@@ -871,6 +890,10 @@ const functions_compact = {
     "⊂": functions["elem"],
     "¶": functions["lines"],
     "w": functions["words"],
+    "¡": functions["iteratewhile"],
+    "!": functions["iteraten"],
+    "S": functions["sort"],
+    "🎲": functions["dice"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     fold,
@@ -881,8 +904,6 @@ const functions_compact = {
     "index": arity(index, 2, 1),
     "odd": arity(odd, 1, 1),
     "even": arity(even, 1, 1),
-    iteraten,
-    iteratewhile,
 }
 
 module.exports = {functions, functions_compact}
