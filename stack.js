@@ -1,11 +1,12 @@
 class Stack {
-    constructor(){
+    constructor(settings = {}){
         this.stack = []
+        this.settings = settings
     }
     pop(num = 0){
         if(num == 0){
             if(this.stack.length == 0){
-                console.error("popping from empty stack, returning 0")
+                if(this.settings.warnings) console.error("popping from empty stack, returning 0")
                 return {"type": "int", "value": 0}
             }
             return this.stack.pop()

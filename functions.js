@@ -132,12 +132,8 @@ const arity = (func, input, output) => {
         let args = stack.pop(input)
         let result = func(...args)
         if(result === undefined){
-            // let error_msg = `can't use function "${func.name}" on ${args}`
-            // console.error(error_msg)
-            // console.error(args)
-            // throw new Error(error_msg)
-            // return
             error(func.name, ...args)
+            return
         }
         if(output == 1){
             stack.push(result)
@@ -177,7 +173,67 @@ const map = (stack, self) => {
         })
         return
     }
+    if(a.type == "string" && b.type == "block"){
+        let result = []
+
+        for(let element of a.value){
+            // let stack = new Stack()
+            stack.push(toString(element))
+            for(let command of b.value){
+                self.doCommand(command)
+            }
+            result.push(stack.pop())
+        }
+        stack.push({
+            "type": "list",
+            "value": result
+        })
+        return
+    }
     error("map", a, b)
+}
+const mapWith = (stack, self) => {
+    let c = stack.pop()
+    let b = stack.pop()
+    let a = stack.pop()
+    
+    if(b.type == "list" && c.type == "block"){
+        let result = []
+
+        for(let element of b.value){
+            // let stack = new Stack()
+            stack.push(a)
+            stack.push(element)
+            for(let command of c.value){
+                self.doCommand(command)
+            }
+            result.push(stack.pop())
+        }
+        stack.push({
+            "type": "list",
+            "value": result
+        })
+        return
+    }
+    if(b.type == "string" && c.type == "block"){
+        let result = []
+
+        for(let element of b.value){
+            // let stack = new Stack()
+            stack.push(a)
+            stack.push(toString(element))
+            for(let command of c.value){
+                self.doCommand(command)
+            }
+            result.push(stack.pop())
+        }
+        stack.push({
+            "type": "list",
+            "value": result
+        })
+        return
+    }
+    error("mapWith", a, b, c)
 }
 const filter = (stack, self) => {
     let b = stack.pop()
@@ -320,7 +376,7 @@ const greater_than = (a, b) => {
     if(isNumber(a) && isNumber(b)) return a.value > b.value ? true_val : false_val
 }
 const transpose = (a) => {
-    if(isList(a) && isList(a.value[0])){ // is at least 2d
+    if(isList(a) && a.value.length > 0 && isList(a.value[0])){ // is at least 2d
         let min_length = Math.min(...a.value.map(e => e.value.length))
         let raw_transposed = Array(min_length).fill().map((_,i)=>a.value.map(r=>r.value[i]))
         let glangified = toList(raw_transposed.map(toList))
@@ -613,7 +669,9 @@ const count = (stack, self) => {
                 val = stack.pop()
                 if(isTruthy(val)) count_num++
             }else{
-                if(isTruthy(equals(a.value[i], b))) count_num++
+                // console.log(a.value[i])
+                // console.log(b)
+                if(isTruthy(equals(isString(a) ? toString(a.value[i]) : a.value[i], b))) count_num++
             }
         }
         stack.push(toInt(count_num))
@@ -668,7 +726,20 @@ const elem = (a, b) => {
     }
     return
 }
-
+const lines = (a) => {
+    if(isString(a)){
+        return toList(a.value.split("\n").map(toString))
+    }
+    if(isNumber(a)) return toString(a.value)
+    if(isList(a)) return toString(a.value.map(stringify).join("\n"))
+}
+const words = (a) => {
+    if(isString(a)){
+        return toList(a.value.split(" ").map(toString))
+    }
+    if(isNumber(a)) return toString(a.value)
+    if(isList(a)) return toString(a.value.map(stringify).join(" "))
+}
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -682,6 +753,7 @@ const functions = {
     "repeat": arity(repeat, 2, 1),
     "range": arity(range, 1, 1),
     map,
+    mapWith,
     filter,
     "length": arity(length, 1, 1),
     "dup": arity(dup, 1, 2),
@@ -739,6 +811,8 @@ const functions = {
     "ord": arity(ord, 1, 1),
     "chars": arity(chars, 1, 1),
     "elem": arity(elem, 2, 1),
+    "lines": arity(lines, 1, 1),
+    "words": arity(words, 1, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -750,6 +824,7 @@ const functions_compact = {
     "@": functions["apply"],
     "R": functions["repeat"],
     "m": functions["map"],
+    "M": functions["mapWith"],
     "f": functions["filter"],
     "L": functions["length"],
     ":": functions["dup"],
@@ -757,9 +832,8 @@ const functions_compact = {
     "▲": functions["max"],
     "▼": functions["min"],
     "`": functions["dump"],
-    "w": functions["wrap"],
-    "W": functions["wrapN"],
-    "W": functions["string"],
+    "W": functions["wrap"],
+    "Ẇ": functions["wrapN"],
     "s": functions["string"],
     "$": functions["swap"],
     "↑": functions["take"],
@@ -795,6 +869,9 @@ const functions_compact = {
     "c": functions["chr"],
     "o": functions["ord"],
     "⊂": functions["elem"],
+    "¶": functions["lines"],
+    "w": functions["words"],
+    "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     fold,
     scan,
@@ -802,7 +879,6 @@ const functions_compact = {
     "get": arity(web_get, 1, 1),
     "sign": arity(sign, 1, 1),
     "index": arity(index, 2, 1),
-    "chars": arity(chars, 1, 1),
     "odd": arity(odd, 1, 1),
     "even": arity(even, 1, 1),
     iteraten,

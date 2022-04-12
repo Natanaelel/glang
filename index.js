@@ -21,7 +21,15 @@ let program = fs.readFileSync(program_path).toString()
 
 
 // let g = new Glang(program, {"verbose": true})
-let g = new Glang(program, {"verbose": false})
+
+let settings = {
+	"verbose": false,
+	// "debug": true,
+	"warnings": true,
+	// "logfunction": (self, command) => console.log(command.value, self.stack.stack)
+
+}
+let g = new Glang(program, settings)
 // console.log(g)
 g.run()
 

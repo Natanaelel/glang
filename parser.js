@@ -16,9 +16,10 @@ function tokenize(code, settings = {}){
 		{"type": "whitespace", "pattern": /^\s+/},
 		{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": parseFloat(m[0]), "length": m[0].length})},
 		{"type": "int", "pattern": /^\d+/, "process": m => ({"token": parseInt(m[0]), "length": m[0].length})},
-		{"type": "string", "pattern": /^"(.*?)("|$)/, "process": m => ({"token": m[1], "length": m[0].length})},
+		{"type": "string", "pattern": /^"(.*?)("|$)/m, "process": m => ({"token": m[1], "length": m[0].length})},
 		{"type": "string", "pattern": /^'(\\.|.|\s)/, "process": m => ({"token": fromEscapedChar(m[1]), "length": m[0].length})},
 		{"type": "special", "pattern": /^[{}]/},
+		{"type": "whitespace", "pattern": /^\/\/.*/}, // comment starts with "//"
 		{"type": "func", "pattern": settings.verbose ? /^[a-z_]+/i : /^./},
 	]
 	patterns.push({"type": "func", "pattern": /^./},)
