@@ -2,10 +2,11 @@ const fromEscapedChar = char => {
 	return {
 		"\\n": "\n",
 		"\\t": "\t",
-		"\\\\": "\\",
 		"\\f": "\f",
 		"\\r": "\r",
 		"\\b": "\b",
+		"\\\\": "\\",
+		"\\\"": "\"",
 	}[char] ?? char
 }
 
@@ -16,13 +17,14 @@ function tokenize(code, settings = {}){
 		{"type": "whitespace", "pattern": /^\s+/},
 		{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": parseFloat(m[0]), "length": m[0].length})},
 		{"type": "int", "pattern": /^\d+/, "process": m => ({"token": parseInt(m[0]), "length": m[0].length})},
-		{"type": "string", "pattern": /^"(.*?)("|(?=\n))/u, "process": m => ({"token": m[1], "length": m[0].length})},
+		{"type": "string", "pattern": /^"((\\\\|\\.|[^\\"\n])*)("|(?=\n)|(?=$))/u, "process": m => ({"token": m[1].replace(/\\./g, fromEscapedChar), "length": m[0].length})},
 		{"type": "string", "pattern": /^'(\\.|.|\s)/u, "process": m => ({"token": fromEscapedChar(m[1]), "length": m[0].length})},
 		{"type": "special", "pattern": /^[{}]/},
 		{"type": "whitespace", "pattern": /^\/\/.*/}, // comment starts with "//"
 		{"type": "func", "pattern": settings.verbose ? /^[a-z_]+/i : /^./u},
+		{"type": "func", "pattern": /^./u}
 	]
-	patterns.push({"type": "func", "pattern": /^./},)
+
 	let tokens = []
 
 	W: while(code.length > 0){

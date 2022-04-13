@@ -44,7 +44,10 @@ class Stack {
             if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
             return `${a.value}`
         }
-        return Array.isArray(self) ? `[${self.map(show).join(", ")}]` : show(self)
+        if(Array.isArray(self)) return `[${self.map(show).join(", ")}]`
+        if(self.type == "string") return self.value
+        // if(typeof self == "string" || self instanceof String) return self
+        return show(self)
     }
     clear(){
         this.stack = []

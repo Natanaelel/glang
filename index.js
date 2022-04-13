@@ -30,7 +30,7 @@ let settings = {
 
 }
 let g = new Glang(program, settings)
-// console.log(g)
+console.log(g)
 g.run()
 
 console.log(g.stack.pretty())
