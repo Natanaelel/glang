@@ -49,16 +49,24 @@ class Stack {
     //     return show(self)
     // }
     pretty(self = this.stack){
-            const show = a => {
-                if(a === undefined || a === null) return `nil`
-                if(Array.isArray(a)) return `[${a.map(x => x.toRawString?.() ?? x.toString()).join(", ")}]`
-
-                if(a.type == "list") return `[${a.to_array().map(show).join(", ")}]`
-                if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
-                return `${a.value}`
-            }
-            // if(typeof self == "string" || self instanceof String) return self
-            return show(self)
+        if(Array.isArray(self)){
+            self.map(x => x?.to_array_deep?.() ?? x)
+        }else if(self?.type == "list"){
+            self.value.to_array_deep()
+        }
+        const show = a => {
+            if(a === undefined || a === null) return `nil`
+            // if(Array.isArray(a)) return `[${a.map(x => x.toRawString?.() ?? x.toString()).join(", ")}]`
+            if(Array.isArray(a)) return `[${a.map(show).join(", ")}]`
+            if(a.type == "string") return a.toRawString()
+            if(a.type == "int") return a.toRawString()
+            if(a.type == "float") return a.toRawString()
+            if(a.type == "list") return `[${a.to_array().map(show).join(", ")}]`
+            if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
+            return `${a.value}`
+        }
+        // if(typeof self == "string" || self instanceof String) return self
+        return show(self)
         }
     clear(){
         this.stack = []

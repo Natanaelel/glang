@@ -108,6 +108,12 @@ class Lazylist {
         return arr
         // return Array(this.get_size()).fill().map((_, i) => this.at(i))
     }
+    to_array_deep(){
+        return this.to_array().map(x => {
+            if(x instanceof Lazylist) return x.to_array_deep()
+            return x
+        })
+    }
     reduce(...args){
         return this.to_array().reduce(...args)
     }
@@ -120,6 +126,18 @@ class Lazylist {
             return new Lazylist(get_at2, () => self1.get_size(),this.at(0).get_size())
         }
         return new Lazylist(get_at, () => this.at(0).get_size(), this.at(0).get_size())
+    }
+    reverse(){
+        const get_at = (self, index) => {
+            return this.at(self.get_size() - index - 1)
+        }
+        return new Lazylist(get_at, () => this.get_size(), this.size)
+    }
+    static zipWith(func, a, b){
+        const get_at = (self, index) => {
+            return func(a.at(index), b.at(index))
+        }
+        return new Lazylist(get_at, () => Math.min(a.get_size() + b.get_size()), Math.min(a.get_size() + b.get_size()))
     }
     static repeat(element){
         return new Lazylist(() => element, () => Infinity)
@@ -148,3 +166,8 @@ class Lazylist {
 }
 
 module.exports = { Lazylist }
+
+let a = Lazylist.from([1,2,3])
+let b = Lazylist.from([4,5,6])
+let c = Lazylist.zipWith((x,y)=>x+y,a,b)
+console.log(c.to_array())

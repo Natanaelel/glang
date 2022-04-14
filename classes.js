@@ -54,7 +54,7 @@ class GString {
         return this.value
     }
     toRawString(){
-        return `"${a.value.toString().replace(/.|\s/g, m => {
+        return `"${this.value.toString().replace(/.|\s/g, m => {
             if(m == "\n") return "\\n"
             if(m == "\r") return "\\r"
             if(m == "\f") return "\\f"
@@ -92,8 +92,8 @@ class GList {
     isString(){return false }
 
     at(index){return this.value.at(index)}
-    map(mapping_func){return this.value.map(mapping_func)}
-    filter(predicate){return this.value.filter(predicate)}
+    map(mapping_func){return new GList(this.value.map(mapping_func))}
+    filter(predicate){return new GList(this.value.filter(predicate))}
     head(){return this.value.head()}
     tail(){return new GList(this.value.tail())}
     init(){return new GList(this.value.init())}
@@ -104,6 +104,21 @@ class GList {
     call(func){return this.value.call(func)}
     concat(other){ return new GList(this.value.concat(other))}
     to_array(max_elements){ return this.value.to_array(max_elements)}
+    to_array_deep(){ return this.value.to_array_deep()}
+    reverse(){ return new GList(this.value.reverse())}
+
+
+
+    transpose(){
+        let self = this
+        const get_at = (self1, index1) => {
+            const get_at2 = (self2, index2) => {
+                return this.at(index2).at(index1)
+            }
+            return new GList(new Lazylist(get_at2, () => self.value.get_size(), self.value.get_size()))
+        }
+        return new GList(new Lazylist(get_at, () => this.at(0).value.get_size(), this.at(0).value.get_size()))
+    }
 }
 
 class GBlock {

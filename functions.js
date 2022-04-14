@@ -69,19 +69,19 @@ const plus = (a, b) => {
     throw new Error(`can't use ${"+"} on ${a.type} and ${b.type}`)
 }
 const minus = (a, b) => {
-    if(isInt(a) && isInt(b)) return {"type": "int", "value": a.value - b.value}
-    if(isNumber(a) && isNumber(b)) return {"type": "float", "value": a.value - b.value}
-    if(isNumber(a) && isList(b)) return {"type": "list", "value": b.value.map(e => minus(e, a))}
-    if(isList(a) && isNumber(b)) return {"type": "list", "value": a.value.map(e => minus(e, b))}
-    if(isList(a) && isList(b)) return {"type": "list", "value": a.value.map((e, i) => minus(e, b[i]))}
+    if(isInt(a) && isInt(b)) return toInt(a.value - b.value)
+    if(isNumber(a) && isNumber(b)) return toFloat(a.toNumber() - b.toNumber())
+    if(isNumber(a) && isList(b)) return b.map(e => minus(e, a))
+    if(isList(a) && isNumber(b)) return a.map(e => minus(e, b))
+    if(isList(a) && isList(b)) return a.map((e, i) => minus(e, b.at(i)))
     throw new Error(`can't use ${"-"} on ${a.type} and ${b.type}`)
 }
 const multiply = (a, b) => {
-    if(isInt(a) && isInt(b)) return {"type": "int", "value": a.value * b.value}
-    if(isNumber(a) && isNumber(b)) return {"type": "float", "value": a.value * b.value}
-    if(isNumber(a) && isList(b)) return {"type": "list", "value": b.value.map(e => multiply(e, a))}
-    if(isList(a) && isNumber(b)) return {"type": "list", "value": a.value.map(e => multiply(e, b))}
-    if(isList(a) && isList(b)) return {"type": "list", "value": a.value.map((e, i) => multiply(e, b[i]))}
+    if(isInt(a) && isInt(b)) return toInt(a.value * b.value)
+    if(isNumber(a) && isNumber(b)) return toFloat(a.toNumber() * b.toNumber())
+    if(isNumber(a) && isList(b)) return b.map(e => multiply(e, a))
+    if(isList(a) && isNumber(b)) return a.map(e => multiply(e, b))
+    if(isList(a) && isList(b)) return a.map((e, i) => multiply(e, b.at(i)))
     throw new Error(`can't use ${"*"} on ${a.type} and ${b.type}`)
 }
 const divide = (a, b) => {
@@ -140,8 +140,6 @@ const arity = (func, input, output) => {
     }
 }
 
-
-
 const range = (a) => {
     if(isNumber(a)){
         return toList(defs.range(a.value).map(toInt))
@@ -153,20 +151,12 @@ const map = (stack, self) => {
     let a = stack.pop()
     
     if(a.type == "list" && b.type == "block"){
-        let result = []
-
-        for(let element of a.value){
-            // let stack = new Stack()
-            stack.push(element)
-            for(let command of b.value){
-                self.doCommand(command)
-            }
-            result.push(stack.pop())
-        }
-        stack.push({
-            "type": "list",
-            "value": result
+        let result = a.map(el => {
+            stack.push(el)
+            applyBlock(b, stack, self)
+            return stack.pop()
         })
+        stack.push(result)
         return
     }
     if(a.type == "string" && b.type == "block"){
@@ -180,10 +170,7 @@ const map = (stack, self) => {
             }
             result.push(stack.pop())
         }
-        stack.push({
-            "type": "list",
-            "value": result
-        })
+        stack.push(new GList(result))
         return
     }
     error("map", a, b)
@@ -192,23 +179,14 @@ const mapWith = (stack, self) => {
     let c = stack.pop()
     let b = stack.pop()
     let a = stack.pop()
-    
     if(b.type == "list" && c.type == "block"){
-        let result = []
-
-        for(let element of b.value){
-            // let stack = new Stack()
+        let result = b.map(el => {
             stack.push(a)
-            stack.push(element)
-            for(let command of c.value){
-                self.doCommand(command)
-            }
-            result.push(stack.pop())
-        }
-        stack.push({
-            "type": "list",
-            "value": result
+            stack.push(el)
+            applyBlock(c, stack, self)
+            return stack.pop()
         })
+        stack.push(result)
         return
     }
     if(b.type == "string" && c.type == "block"){
@@ -255,14 +233,12 @@ const zipwith = (stack, self) => {
     let b = stack.pop()
     let a = stack.pop()
     if(isList(a) && isList(b) && isBlock(c)){
-        let length = Math.min(a.value.length, b.value.length)
-        let result = []
-        for(let i = 0; i < length; i++){
-            stack.push(a.value[i])
-            stack.push(b.value[i])
+        let result = Lazylist.zipWith((x, y) => {
+            stack.push(x)
+            stack.push(y)
             applyBlock(c, stack, self)
-            result.push(stack.pop())
-        }
+            return stack.pop()
+        }, a.value, b.value)
         stack.push(toList(result))
         return
     }
@@ -377,7 +353,7 @@ const greater_than = (a, b) => {
     if(isNumber(a) && isNumber(b)) return a.value > b.value ? true_val : false_val
 }
 const transpose = (a) => {
-    if(isList(a) && isList(a.at(0))) return a.value.transpose()
+    if(isList(a) && isList(a.at(0))) return a.transpose()
     // if(isList(a) && a.value.length > 0 && isList(a.value[0])){ // is at least 2d
         // let min_length = Math.min(...a.value.map(e => e.value.length))
         // let raw_transposed = Array(min_length).fill().map((_,i)=>a.value.map(r=>r.value[i]))
@@ -414,25 +390,6 @@ const product = (a) => {
         return a.value.reduce((x, y) => multiply(x, y))
     }
 }
-// const iteraten = (stack, self) => {
-//     // any, func, iterations
-//     let c = stack.pop()
-//     let b = stack.pop()
-//     let a = stack.pop()
-//     if(isBlock(b) && isInt(c)){
-//         let val = a
-//         let result = []
-//         for(let i = 0; i < c.value; i++){
-//             result.push(val)
-//             stack.push(val)
-//             applyBlock(b, stack, self)
-//             val = stack.pop()
-//         }
-//         stack.push(toList(result))
-//         return
-//     }
-//     error("iteraten", a, b, c)
-// }
 const iteraten = (stack, self) => {
     // any, func, iterations
     let c = stack.pop()
@@ -500,8 +457,9 @@ const reverse = (a) => {
 }
 const zip = (a, b) => {
     if(isList(a) && isList(b)){
-        let min_length = Math.min(a.value.length, b.value.length)
-        return toList(a.value.slice(0, min_length).map((e, i) => toList([e, b.value[i]])))
+        // let min_length = Math.min(a.value.length, b.value.length)
+        // return toList(a.value.slice(0, min_length).map((e, i) => toList([e, b.value[i]])))
+        return toList(Lazylist.zipWith(pair, a.value, b.value))
     }
 }
 const hex = (a) => {
@@ -883,7 +841,7 @@ const functions_compact = {
     "≠": functions["not_equals"],
     "<": functions["<"],
     ">": functions[">"],
-    "z": functions["zipWith"],
+    "z": functions["zipwith"],
     "T": functions["transpose"],
     "C": functions["slice"],
     "Σ": functions["sum"],
@@ -911,11 +869,11 @@ const functions_compact = {
     "S": functions["sort"],
     "🎲": functions["dice"],
     "₿": functions["bitcoin"],
+    "n": functions["int"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     fold,
     scan,
-    "int": arity(int, 1, 1),
     "get": arity(web_get, 1, 1),
     "sign": arity(sign, 1, 1),
     "index": arity(index, 2, 1),
