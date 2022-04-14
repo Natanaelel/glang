@@ -1,6 +1,5 @@
 const { Glang } = require("./glang.js")
 const fs = require("fs")
-
 function test_programs(){
 	let programs = fs.readFileSync("./test_programs.txt").toString().split(/\s*\*\*\*\s*/).filter(x => x != "")
 

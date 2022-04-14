@@ -752,10 +752,21 @@ const sort = (a) => {
     if(a.value.every(isInt)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(toInt))
     if(a.value.every(isFloat)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(isFloat))
 }
-const dice = (...a) => {
+const dice = () => {
     return toInt(1 + Math.floor(Math.random() * 6))
 }
+const bitcoin = () => {
+    let request = new XMLHttpRequest()
+    request.open("GET", "https://api.coinbase.com/v2/prices/spot?currency=USD", false)
+    request.send()
+    if(request.status != 200){
+        console.error(request.status)
+    }
+    let text = request.responseText ?? "{}"
+    let json = JSON.parse(text)
 
+    return toFloat(json?.data?.amount ?? 0)
+}
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -831,6 +842,7 @@ const functions = {
     "words": arity(words, 1, 1),
     "sort": arity(sort, 1, 1),
     "dice": arity(dice, 0, 1),
+    "bitcoin": arity(bitcoin, 0, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -894,6 +906,7 @@ const functions_compact = {
     "!": functions["iteraten"],
     "S": functions["sort"],
     "🎲": functions["dice"],
+    "₿": functions["bitcoin"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     fold,
