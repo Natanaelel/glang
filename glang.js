@@ -2,6 +2,9 @@ const Stack = require("./stack.js")
 const { functions, functions_compact} = require("./functions.js")
 const parse = require("./parser.js")
 
+
+const { Int } = require("./classes.js")
+
 const isLiteral = token => ["int", "float", "char", "string", "block"].includes(token.type)
 
 
@@ -45,4 +48,6 @@ class Glang {
     }
 }
 
-module.exports = {Glang}
+module.exports = {
+    Glang
+}

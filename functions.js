@@ -4,14 +4,14 @@ const defs = require("./defs.js")
 
 const { XMLHttpRequest } = require("xmlhttprequest")
 
-// const { Lazylist } = require("@natanalel/lazylist")
 const { Lazylist } = require("./infinitely_lazy/lazylist.js")
+const { GInt, GFloat, GString, GList, GBlock } = require("./classes.js")
 
-
-const toInt = a => ({"type": "int", "value": parseInt(a)})
-const toFloat = a => ({"type": "float", "value": parseFloat(a)})
-const toString = a => ({"type": "string", "value": `${a}`})
-const toList = a => ({"type": "list", "value": a})
+// const toInt = a => ({"type": "int", "value": parseInt(a)})
+const toInt = a => new GInt(a)
+const toFloat = a => new GFloat(a)
+const toString = a => new GString(a)
+const toList = a => new GList(a)
 
 const deepClone = a => {
     if(a.type == "int") return toInt(a.value)
@@ -26,15 +26,11 @@ const isInt = token => token.type == "int"
 const isFloat = token => token.type == "float"
 const isNumber = token => token.type == "int" || token.type == "float"
 const isString = token => token.type == "string"
-const isChar = token => token.type == "char"
-const isStringy = token => token.type == "string" || token.type == "char"
 const isList = token => token.type == "list"
-const isListy = token => token.type == "list" || token.type == "string"
 const isBlock = token => token.type == "block"
 
 const error = (name, ...params) => {
     console.error(`function ${name} doesn't take parameters ${params.map(e => e.type).join(", ")}`)
-    // process.exit()
 }
 
 const stringify = (a) => {
@@ -64,7 +60,7 @@ const isFalsy = (a) => {
 }
 const plus = (a, b) => {
     if(isInt(a) && isInt(b)) return toInt(a.value + b.value)
-    if(isNumber(a) && isNumber(b)) return toFloat(a.value + b.value)
+    if(isNumber(a) && isNumber(b)) return toFloat(a.toNumber() + b.toNumber())
     if(isNumber(a) && isList(b)) return toList(b.value.map(e => plus(e, a)))
     if(isList(a) && isNumber(b)) return toList(a.value.map(e => plus(e, b)))
     // if(isList(a) && isList(b)) return toList(a.value.map((e, i) => plus(e, b[i]))) // vectorizes
@@ -307,29 +303,29 @@ const string = (a) => {
 }
 const swap = (a, b) => [b, a]
 const take = (a, b) => {
-    if(isList(a) && isInt(b)) return toList(a.value.slice(0, b.value))
+    if(isList(a) && isInt(b)) return toList(a.take(b.toNumber()))
     if(isString(a) && isInt(b)) return toString(a.value.slice(0, b.value))
 }
 const drop = (a, b) => {
-    if(isList(a) && isInt(b)) return toList(a.value.slice(b.value))
+    if(isList(a) && isInt(b)) return toList(a.drop(b.toNumber()))
     if(isString(a) && isInt(b)) return toString(a.value.slice(b.value))
 }
 const head = (a) => {
     if(isString(a)) return toString(a.value[0])
-    if(isList(a)) return a.value[0]
+    if(isList(a)) return a.head()
     if(isInt(a)) return toInt(a.value - 1)
 }
 const tail = (a) => {
-    if(isString(a)) return toString(a.value.slice(1))
-    if(isList(a)) return toList(a.value.slice(1))
+    if(isString(a)) return toString(a.tail())
+    if(isList(a)) return toList(a.tail())
 }
 const init = (a) => {
-    if(isString(a)) return toString(a.value.slice(0, -1))
+    if(isString(a)) return toString(a.init())
     if(isList(a)) return toList(a.value.slice(0, -1))
 }
 const last = (a) => {
     if(isString(a)) return toString(a.value[a.value.length - 1])
-    if(isList(a)) return a.value[a.value.length - 1]
+    if(isList(a)) return a.last()
     if(isInt(a)) return toInt(a.value + 1)
 }
 const split = (a, b) => {
@@ -381,12 +377,13 @@ const greater_than = (a, b) => {
     if(isNumber(a) && isNumber(b)) return a.value > b.value ? true_val : false_val
 }
 const transpose = (a) => {
-    if(isList(a) && a.value.length > 0 && isList(a.value[0])){ // is at least 2d
-        let min_length = Math.min(...a.value.map(e => e.value.length))
-        let raw_transposed = Array(min_length).fill().map((_,i)=>a.value.map(r=>r.value[i]))
-        let glangified = toList(raw_transposed.map(toList))
-        return glangified
-    }
+    if(isList(a) && isList(a.at(0))) return a.value.transpose()
+    // if(isList(a) && a.value.length > 0 && isList(a.value[0])){ // is at least 2d
+        // let min_length = Math.min(...a.value.map(e => e.value.length))
+        // let raw_transposed = Array(min_length).fill().map((_,i)=>a.value.map(r=>r.value[i]))
+        // let glangified = toList(raw_transposed.map(toList))
+        // return glangified
+    // }
     return
 }
 const slice = (a, b) => {
@@ -410,24 +407,32 @@ const slice = (a, b) => {
 const sum = (a) => {
     if(isList(a)){
         return a.value.reduce((x, y) => plus(x, y))
-        if(isInt(a.value[0])){
-            return toInt(a.value.reduce((x, y) => x + y.value, 0))
-        }
-        if(isFloat(a.value[0])){
-            return toFloat(a.value.reduce((x, y) => x + y.value, 0))
-        }
     }
 }
 const product = (a) => {
     if(isList(a)){
-        if(isInt(a.value[0])){
-            return toInt(a.value.reduce((x, y) => x * y.value, 1))
-        }
-        if(isFloat(a.value[0])){
-            return toFloat(a.value.reduce((x, y) => x * y.value, 1))
-        }
+        return a.value.reduce((x, y) => multiply(x, y))
     }
 }
+// const iteraten = (stack, self) => {
+//     // any, func, iterations
+//     let c = stack.pop()
+//     let b = stack.pop()
+//     let a = stack.pop()
+//     if(isBlock(b) && isInt(c)){
+//         let val = a
+//         let result = []
+//         for(let i = 0; i < c.value; i++){
+//             result.push(val)
+//             stack.push(val)
+//             applyBlock(b, stack, self)
+//             val = stack.pop()
+//         }
+//         stack.push(toList(result))
+//         return
+//     }
+//     error("iteraten", a, b, c)
+// }
 const iteraten = (stack, self) => {
     // any, func, iterations
     let c = stack.pop()
@@ -435,14 +440,13 @@ const iteraten = (stack, self) => {
     let a = stack.pop()
     if(isBlock(b) && isInt(c)){
         let val = a
-        let result = []
-        for(let i = 0; i < c.value; i++){
-            result.push(val)
+        let func = val => {
             stack.push(val)
             applyBlock(b, stack, self)
-            val = stack.pop()
+            return stack.pop()
         }
-        stack.push(toList(result))
+        let result = new GList(Lazylist.iterate(func, val).take(c.toNumber()))
+        stack.push(result)
         return
     }
     error("iteraten", a, b, c)

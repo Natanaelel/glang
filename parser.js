@@ -1,3 +1,6 @@
+const { GInt, GFloat, GString, GList, GBlock } = require("./classes.js")
+
+
 const fromEscapedChar = char => {
 	return {
 		"\\n": "\n",
@@ -15,10 +18,10 @@ function tokenize(code, settings = {}){
 
 	const patterns = [
 		{"type": "whitespace", "pattern": /^\s+/},
-		{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": parseFloat(m[0]), "length": m[0].length})},
-		{"type": "int", "pattern": /^\d+/, "process": m => ({"token": parseInt(m[0]), "length": m[0].length})},
-		{"type": "string", "pattern": /^"((\\\\|\\.|[^\\"\n])*)("|(?=\n)|(?=$))/u, "process": m => ({"token": m[1].replace(/\\./g, fromEscapedChar), "length": m[0].length})},
-		{"type": "string", "pattern": /^'(\\.|.|\s)/u, "process": m => ({"token": fromEscapedChar(m[1]), "length": m[0].length})},
+		{"type": "float", "pattern": /^\d+\.\d*/, "process": m => ({"token": new GFloat(m[0]), "length": m[0].length})},
+		{"type": "int", "pattern": /^\d+/, "process": m => ({"token": new GInt(m[0]), "length": m[0].length})},
+		{"type": "string", "pattern": /^"((\\\\|\\.|[^\\"\n])*)("|(?=\n)|(?=$))/u, "process": m => ({"token": new GString(m[1].replace(/\\./g, fromEscapedChar)), "length": m[0].length})},
+		{"type": "string", "pattern": /^'(\\.|.|\s)/u, "process": m => ({"token": new GString(fromEscapedChar(m[1])), "length": m[0].length})},
 		{"type": "special", "pattern": /^[{}]/},
 		{"type": "whitespace", "pattern": /^\/\/.*/}, // comment starts with "//"
 		{"type": "func", "pattern": settings.verbose ? /^[a-z_]+/i : /^./u},
@@ -32,7 +35,7 @@ function tokenize(code, settings = {}){
             if(m = code.match(pattern)){
                 if(process){
                     let {token, length} = process(m)
-					tokens.push({
+					tokens.push(token.type ? token : {
 						"type": type,
 						"value": token
 					})

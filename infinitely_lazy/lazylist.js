@@ -47,6 +47,9 @@ class Lazylist {
         const get_at = (self, index) => this.at(index)
         return new Lazylist(get_at, () => this.get_size() - 1)
     }
+    last(){
+        return this.at(this.get_size() - 1)
+    }
     take(num){
         const get_at = (self, index) => this.at(index)
         return new Lazylist(get_at, () => Math.min(num, this.get_size()))
@@ -89,7 +92,7 @@ class Lazylist {
         }
         return new Lazylist(get_at, () => this.get_size() + other.get_size())
     }
-    to_array(){
+    to_array(max_elements = Infinity){ // todo: respect max_elements
         let arr = []
         this.size = this.get_size()
         for(let i = 0; i < this.size; i++){
@@ -105,6 +108,19 @@ class Lazylist {
         return arr
         // return Array(this.get_size()).fill().map((_, i) => this.at(i))
     }
+    reduce(...args){
+        return this.to_array().reduce(...args)
+    }
+    transpose(){
+        const get_at = (self1, index1) => {
+            const get_at2 = (self2, index2) => {
+                return this.at(index2).at(index1)
+            
+            }
+            return new Lazylist(get_at2, () => self1.get_size(),this.at(0).get_size())
+        }
+        return new Lazylist(get_at, () => this.at(0).get_size(), this.at(0).get_size())
+    }
     static repeat(element){
         return new Lazylist(() => element, () => Infinity)
     }
@@ -118,7 +134,7 @@ class Lazylist {
         const get_at = (self, index) => {
             return arr[index]
         }
-        return new Lazylist(get_at, () => arr.length)
+        return new Lazylist(get_at, () => arr.length, arr.length)
     }
     static iterate(func, start_val){
         const get_at = (self, index) => {
