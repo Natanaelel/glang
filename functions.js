@@ -17,17 +17,17 @@ const deepClone = a => {
     if(a.type == "int") return toInt(a.value)
     if(a.type == "float") return toFloat(a.value)
     if(a.type == "string") return toString(a.value)
-    if(a.type == "list") return toList(a.value.map(deepClone))
+    if(a.type == "list") return toList(a.map(deepClone))
     throw new Error("what type in deepclone what?!")
 }
 
 
-const isInt = token => token.type == "int"
-const isFloat = token => token.type == "float"
-const isNumber = token => token.type == "int" || token.type == "float"
-const isString = token => token.type == "string"
-const isList = token => token.type == "list"
-const isBlock = token => token.type == "block"
+const isInt = obj => obj.type == "int"
+const isFloat = obj => obj.type == "float"
+const isNumber = obj => obj.type == "int" || obj.type == "float"
+const isString = obj => obj.type == "string"
+const isList = obj => obj.type == "list"
+const isBlock = obj => obj.type == "block"
 
 const error = (name, ...params) => {
     console.error(`function ${name} doesn't take parameters ${params.map(e => e.type).join(", ")}`)
@@ -233,12 +233,12 @@ const zipwith = (stack, self) => {
     let b = stack.pop()
     let a = stack.pop()
     if(isList(a) && isList(b) && isBlock(c)){
-        let result = Lazylist.zipWith((x, y) => {
+        let result = GList.zipWith((x, y) => {
             stack.push(x)
             stack.push(y)
             applyBlock(c, stack, self)
             return stack.pop()
-        }, a.value, b.value)
+        }, a, b)
         stack.push(toList(result))
         return
     }
@@ -382,12 +382,12 @@ const slice = (a, b) => {
 
 const sum = (a) => {
     if(isList(a)){
-        return a.value.reduce((x, y) => plus(x, y))
+        return a.reduce((x, y) => plus(x, y))
     }
 }
 const product = (a) => {
     if(isList(a)){
-        return a.value.reduce((x, y) => multiply(x, y))
+        return a.reduce((x, y) => multiply(x, y))
     }
 }
 const iteraten = (stack, self) => {
@@ -402,7 +402,7 @@ const iteraten = (stack, self) => {
             applyBlock(b, stack, self)
             return stack.pop()
         }
-        let result = new GList(Lazylist.iterate(func, val).take(c.toNumber()))
+        let result = GList.iterate(func, val).take(c.toNumber())
         stack.push(result)
         return
     }
@@ -452,14 +452,14 @@ const pop = (stack) => {
     stack.pop()
 }
 const reverse = (a) => {
-    if(isList(a)) return toList(a.value.reverse())
+    if(isList(a)) return toList(a.reverse())
     if(isString(a)) return toString(a.value.split("").reverse().join(""))
 }
 const zip = (a, b) => {
     if(isList(a) && isList(b)){
         // let min_length = Math.min(a.value.length, b.value.length)
         // return toList(a.value.slice(0, min_length).map((e, i) => toList([e, b.value[i]])))
-        return toList(Lazylist.zipWith(pair, a.value, b.value))
+        return toList(GList.zipWith(pair, a, b))
     }
 }
 const hex = (a) => {
@@ -523,7 +523,7 @@ const minby = (stack, self) => {
 const range_from_to = (a, b) => {
     if(isInt(a) && isInt(b)){
         let result = []
-        let diff = a.value < b.value ? 1 : -1
+        let diff = a.value < b.value ? 1n : -1n
         for(let i = a.value; i != b.value; i += diff){
             result.push(toInt(i))
         }

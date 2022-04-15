@@ -52,7 +52,7 @@ class Stack {
         if(Array.isArray(self)){
             self.map(x => x?.to_array_deep?.() ?? x)
         }else if(self?.type == "list"){
-            self.value.to_array_deep()
+            self.to_array_deep()
         }
         const show = a => {
             if(a === undefined || a === null) return `nil`

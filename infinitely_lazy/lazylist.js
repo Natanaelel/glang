@@ -167,7 +167,7 @@ class Lazylist {
 
 module.exports = { Lazylist }
 
-let a = Lazylist.from([1,2,3])
-let b = Lazylist.from([4,5,6])
-let c = Lazylist.zipWith((x,y)=>x+y,a,b)
-console.log(c.to_array())
+// let a = Lazylist.from([1,2,3])
+// let b = Lazylist.from([4,5,6])
+// let c = Lazylist.zipWith((x,y)=>x+y,a,b)
+// console.log(c.to_array())
