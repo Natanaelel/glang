@@ -1,8 +1,6 @@
-const { Lazylist } = require("./infinitely_lazy/lazylist.js")
-
-
 class GInt {
     constructor(n = 0n){
+        if(n === Infinity) return new GFloat(n)
         this.value = BigInt(n)
         this.type = "int"
     }
@@ -18,11 +16,18 @@ class GInt {
     toNumber(){
         return Number(this.value)
     }
+    toBool(){
+        return this.value !== 0n
+    }
+    equals(other){
+        return (other instanceof GInt) && other.value == this.value
+    }
     isInt(){ return true}
     isFloat(){ return false}
     isString(){ return false}
     isList(){ return false}
 }
+
 class GFloat {
     constructor(f = 0.0){
         this.value = Number(f)
@@ -40,11 +45,18 @@ class GFloat {
     toNumber(){
         return this.value
     }
+    toBool(){
+        return this.value !== 0
+    }
+    equals(other){
+        return (other instanceof GFloat) && other.value == this.value
+    }
     isInt(){ return false}
     isFloat(){ return true}
     isString(){ return false}
     isList(){ return false}
 }
+
 class GString {
     constructor(str = ""){
         this.value = `${str}`
@@ -66,60 +78,18 @@ class GString {
     valueOf(){
         return this.value
     }
+    toBool(){
+        return this.value !== ""
+    }
+    equals(other){
+        return (other instanceof GString) && other.value == this.value
+    }
     isInt(){ return false}
     isFloat(){ return false}
     isString(){ return true}
     isList(){ return false}
 }
-// class GList {
-//     constructor(arr = []){
-//         if(!(arr instanceof GList) && !Array.isArray(arr) && !(arr instanceof Lazylist)) throw new TypeError("arr is not an array or LazyList")
-        
-//         this.value = Array.isArray(arr) ? Lazylist.from(arr) : arr
-//         this.type = "list"
-//     }
-//     toString(max_elements = Infinity){
-//         return "[" + this.value.take(max_elements).to_array().map(x => x.toString()).join(", ") + "]"
-//     }
-//     toRawString(max_elements = Infinity){
-//         return "[" + this.value.take(max_elements).to_array().map(x => x.toRawString?.() ?? x.toString()).join(", ") + "]"
-//     }
-//     valueOf(){
-//         return this.value
-//     }
-//     isInt(){return true}
-//     isFloat(){return false }
-//     isString(){return false }
 
-//     at(index){return this.value.at(index)}
-//     map(mapping_func){return new GList(this.value.map(mapping_func))}
-//     filter(predicate){return new GList(this.value.filter(predicate))}
-//     head(){return this.value.head()}
-//     tail(){return new GList(this.value.tail())}
-//     init(){return new GList(this.value.init())}
-//     last(){return this.value.last()}
-//     take(num){return new GList(this.value.take(num))}
-//     take_while(predicate){return new GList(this.value.take_while(predicate))}
-//     drop(num){return new GList(this.value.drop(num))}
-//     call(func){return this.value.call(func)}
-//     concat(other){ return new GList(this.value.concat(other))}
-//     to_array(max_elements){ return this.value.to_array(max_elements)}
-//     to_array_deep(){ return this.value.to_array_deep()}
-//     reverse(){ return new GList(this.value.reverse())}
-
-
-
-//     transpose(){
-//         let self = this
-//         const get_at = (self1, index1) => {
-//             const get_at2 = (self2, index2) => {
-//                 return this.at(index2).at(index1)
-//             }
-//             return new GList(new Lazylist(get_at2, () => self.value.get_size(), self.value.get_size()))
-//         }
-//         return new GList(new Lazylist(get_at, () => this.at(0).value.get_size(), this.at(0).value.get_size()))
-//     }
-// }
 class GListError extends Error {}
 
 class GList {
@@ -137,6 +107,14 @@ class GList {
         this.size = size
         this.type = "list"
     }
+    length(){
+        return this.get_size?.() ?? this.get_size
+    }
+    isFullyEvaluated(){
+        let evaluated = 0
+        this.list.forEach(_ => evaluated++)
+        return evaluated === this.get_size() ?? this.size
+    }
     toString(max_elements = Infinity){
         return "[" + this.take(max_elements).to_array().map(x => x.toString()).join(", ") + "]"
     }
@@ -147,8 +125,10 @@ class GList {
     isFloat(){return false }
     isString(){return false }
     isList(){ return true}
-
-    
+    toBool(){
+        if(this.length !== undefined) return this.size > 0
+        return this.get_size() > 0
+    }
     at(index){
         if(index >= this.get_size()) throw new GListError("index too large")
         if(index < 0) throw new GListError("index too small")
@@ -277,6 +257,21 @@ class GList {
             return this.at(self.get_size() - index - 1)
         }
         return new GList(get_at, () => this.get_size(), this.size)
+    }
+    inits(){
+        return GList.zipWith((_, len) => this.take(len), this, GList.naturals).take(this.get_size())
+    }
+    tails(){
+        return GList.zipWith((_, len) => this.drop(len - 1), this, GList.naturals).take(this.get_size())
+    }
+    all(func = x => x){
+        return this.to_array().every(func)
+    }
+    any(func = x => x){
+        return this.to_array().some(func)
+    }
+    equals(other){
+        return (other instanceof GList) && this.get_size() == other.get_size() && this.zipWith((x, y) => x.equals(y)).all()
     }
     static zipWith(func, a, b){
         const get_at = (self, index) => {

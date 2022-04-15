@@ -3,7 +3,7 @@ const { functions, functions_compact} = require("./functions.js")
 const parse = require("./parser.js")
 
 
-const { Int } = require("./classes.js")
+const { GInt, GFloat, GString, GList, GBlock } = require("./types.js")
 
 const isLiteral = token => ["int", "float", "char", "string", "block"].includes(token.type)
 
@@ -41,9 +41,24 @@ class Glang {
         return this
     }
     run(){
+        // do each command
         for(let command of this.commands){
             this.doCommand(command)
         }
+
+        // evaluate every item on the stack
+        // transform every lazy list to vanilla array
+        for(let i = 0; i < this.stack.stack.length; i++){
+            let value = this.stack.stack[i]
+            if(value instanceof GList){
+                if(!value.isFullyEvaluated()){
+                    value.to_array_deep()
+                    i = 0
+                }
+            }
+        }
+        
+
         return this
     }
 }

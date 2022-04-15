@@ -5,7 +5,7 @@ const defs = require("./defs.js")
 const { XMLHttpRequest } = require("xmlhttprequest")
 
 const { Lazylist } = require("./infinitely_lazy/lazylist.js")
-const { GInt, GFloat, GString, GList, GBlock } = require("./classes.js")
+const { GInt, GFloat, GString, GList, GBlock } = require("./types.js")
 
 // const toInt = a => ({"type": "int", "value": parseInt(a)})
 const toInt = a => new GInt(a)
@@ -20,7 +20,10 @@ const deepClone = a => {
     if(a.type == "list") return toList(a.map(deepClone))
     throw new Error("what type in deepclone what?!")
 }
-
+const todo = (...a) => {
+    console.error(...a)
+    throw new Error("todo")
+}
 
 const isInt = obj => obj.type == "int"
 const isFloat = obj => obj.type == "float"
@@ -46,25 +49,28 @@ const applyBlock = (block, stack, self) => {
     }
 }
 
-const isTruthy = (a) => {
+const isFalsy = (a) => {
     return !isFalsy(a)
 }
-const isFalsy = (a) => {
-    if(isString(a)) return a.value === ""
-    if(isInt(a)) return a.value === 0
-    if(isFloat(a)) return a.value === 0.0
-    if(isList(a)) return a.value.length === 0
-    if(isBlock(a)) return  false // idk if block, now block yes
+const isTruthy = (a) => {
+    
+    if(isBlock(a)) return true // idk if block, now block.
+    // if(isString(a)) return a.value === ""
+    // if(isInt(a)) return a.value === 0
+    // if(isFloat(a)) return a.value === 0.0
+    // if(isList(a)) return a.value.length === 0
+    let result = a?.toBool?.()
+    if(result === true || result === false) return result
     console.error(a)
     throw new Error("what kind of value is this?!")
 }
 const plus = (a, b) => {
     if(isInt(a) && isInt(b)) return toInt(a.value + b.value)
     if(isNumber(a) && isNumber(b)) return toFloat(a.toNumber() + b.toNumber())
-    if(isNumber(a) && isList(b)) return toList(b.value.map(e => plus(e, a)))
-    if(isList(a) && isNumber(b)) return toList(a.value.map(e => plus(e, b)))
+    if(isNumber(a) && isList(b)) return b.map(e => plus(e, a))
+    if(isList(a) && isNumber(b)) return a.map(e => plus(e, b))
     // if(isList(a) && isList(b)) return toList(a.value.map((e, i) => plus(e, b[i]))) // vectorizes
-    if(isList(a) && isList(b)) return toList(a.value.concat(b.value)) // concat
+    if(isList(a) && isList(b)) return a.concat(b) // concat
     if(isString(a) && isString(b)) return toString(a.value + b.value)
     throw new Error(`can't use ${"+"} on ${a.type} and ${b.type}`)
 }
@@ -93,11 +99,12 @@ const divide = (a, b) => {
     throw new Error(`can't use ${"/"} on ${a.type} and ${b.type}`)
 }
 const mod = (a, b) => {
-    if(isInt(a) && isInt(b)) return toInt(a.value % b.value)
+    if(isInt(a) && isInt(b)) return b.value == 0n ? toInt(0n) : toInt(a.value % b.value)
     if(isNumber(a) && isNumber(b)) return toFloat(a.value % b.value)
-    if(isNumber(a) && isList(b)) return toList(b.value.map(e => mod(e, a)))
-    if(isList(a) && isNumber(b)) return toList(a.value.map(e => mod(e, b)))
-    if(isList(a) && isList(b)) return toList(a.value.map((e, i) => mod(e, b[i])))
+    if(isNumber(a) && isList(b)) return b.map(e => mod(a, e))
+    if(isList(a) && isNumber(b)) return a.map(e => mod(e, b))
+    // if(isList(a) && isList(b)) return toList(a.value.map((e, i) => mod(e, b[i])))
+    if(isList(a) && isList(b)) return GList.zipWith(mod, a, b)
     throw new Error(`can't use ${"%"} on ${a.type} and ${b.type}`)
 }
 const power = (a, b) => {
@@ -116,10 +123,7 @@ const apply = (stack, self) => {
 }
 
 const repeat = (a, b) => {
-    return {
-        "type": "list",
-        "value": Array(b.value).fill(a)
-    }
+    return GList.repeat(a).take(b.toNumber())
 }
 
 
@@ -213,16 +217,12 @@ const filter = (stack, self) => {
     let b = stack.pop()
     let a = stack.pop()
     if(isList(a) && isBlock(b)){
-        let result = []
-        for(let value of a.value){
-            stack.push(value)
+        let result = a.filter(el => {
+            stack.push(el)
             applyBlock(b, stack, self)
-            let pred = stack.pop()
-            if(isTruthy(pred)){
-                result.push(value)
-            }
-        }
-        stack.push(toList(result))
+            return isTruthy(stack.pop())
+        })
+        stack.push(result)
         return
     }
     error("filter", a, b)
@@ -248,11 +248,11 @@ const zipwith = (stack, self) => {
 const dump = (stack) => {
     let a = stack.pop()
     if(!isList(a)) return stack.push(a)
-    stack.concat(a.value)
+    stack.concat(a.to_array())
 }
 const length = (a) => {
     if(isString(a)) return toInt(a.value.length)
-    if(isList(a)) return toInt(a.value.length)
+    if(isList(a)) return toInt(a.length())
     if(isNumber(a)) return toInt(a.value.toString().length)
 
 }
@@ -271,7 +271,7 @@ const wrapN = (stack) => {
     // let num_num = 
     // let wrapped = stack.stack.slice(-num_num)
     // stack.stack.splice(num_num, num_num)
-    stack.push(toList(stack.pop(parseInt(num.value))))
+    stack.push(toList(stack.pop(num.toNumber())))
 }
 const string = (a) => {
     if(isList(a)) return toString(String.fromCharCode(...a.value.map(e => e.value)))
@@ -289,20 +289,20 @@ const drop = (a, b) => {
 const head = (a) => {
     if(isString(a)) return toString(a.value[0])
     if(isList(a)) return a.head()
-    if(isInt(a)) return toInt(a.value - 1)
+    if(isInt(a)) return minus(a, toInt(1))
 }
 const tail = (a) => {
     if(isString(a)) return toString(a.tail())
     if(isList(a)) return toList(a.tail())
 }
 const init = (a) => {
-    if(isString(a)) return toString(a.init())
-    if(isList(a)) return toList(a.value.slice(0, -1))
+    if(isString(a)) return toString(a.value.slice(0, -1))
+    if(isList(a)) return toList(a.init())
 }
 const last = (a) => {
     if(isString(a)) return toString(a.value[a.value.length - 1])
     if(isList(a)) return a.last()
-    if(isInt(a)) return toInt(a.value + 1)
+    if(isInt(a)) return plus(a, toInt(1))
 }
 const split = (a, b) => {
     if(isString(a) && isString(b)) return toList(a.value.split(b.value).map(toString))
@@ -385,6 +385,12 @@ const sum = (a) => {
         return a.reduce((x, y) => plus(x, y))
     }
 }
+const cumsum = (a) => {
+    if(isList(a)){
+        // return a.inits().map(el => el.call(sum))
+        return a.inits().map(sum)
+    }
+}
 const product = (a) => {
     if(isList(a)){
         return a.reduce((x, y) => multiply(x, y))
@@ -396,13 +402,12 @@ const iteraten = (stack, self) => {
     let b = stack.pop()
     let a = stack.pop()
     if(isBlock(b) && isInt(c)){
-        let val = a
         let func = val => {
             stack.push(val)
             applyBlock(b, stack, self)
             return stack.pop()
         }
-        let result = GList.iterate(func, val).take(c.toNumber())
+        let result = GList.iterate(func, a).take(c.toNumber())
         stack.push(result)
         return
     }
@@ -522,13 +527,15 @@ const minby = (stack, self) => {
 }
 const range_from_to = (a, b) => {
     if(isInt(a) && isInt(b)){
-        let result = []
-        let diff = a.value < b.value ? 1n : -1n
-        for(let i = a.value; i != b.value; i += diff){
-            result.push(toInt(i))
-        }
-        result.push(toInt(b.value))
-        return toList(result)
+        let length = Math.abs(a.toNumber() - b.toNumber())
+        if(a.value < b.value) return new GList((self, index) => toInt(BigInt(index) + a.value), () => length, length)
+        // let result = []
+        // let diff = a.value < b.value ? 1n : -1n
+        // for(let i = a.value; i != b.value; i += diff){
+        //     result.push(toInt(i))
+        // }
+        // result.push(toInt(b.value))
+        // return toList(result)
     }
 }
 const divisors = (a) => {
@@ -594,15 +601,16 @@ const int = (a) => {
 }
 const uniq = (a) => {
     if(isList(a)){
-        if(a.value.every(isInt)){
-            return toList([...new Set(a.value.map(e => e.value))].map(toInt))
-        }
-        if(a.value.every(isFloat)){
-            return toList([...new Set(a.value.map(e => e.value))].map(toFloat))
-        }
-        if(a.value.every(isString)){
-            return toList([...new Set(a.value.map(e => e.value))].map(toString))
-        }
+        return a
+        // if(a.all(isInt)){
+        //     return toList([...new Set(a.value.map(e => e.value))].map(toInt))
+        // }
+        // if(a.value.every(isFloat)){
+        //     return toList([...new Set(a.value.map(e => e.value))].map(toFloat))
+        // }
+        // if(a.value.every(isString)){
+        //     return toList([...new Set(a.value.map(e => e.value))].map(toString))
+        // }
     }
 }
 
@@ -680,10 +688,13 @@ const chars = (a) => {
 }
 const elem = (a, b) => {
     if(isList(a)){
-        for(let i = 0; i < a.value.length; i++){
-            if(equals(a.value[i], b).value == 1) return toInt(1)
-        }
-        return toInt(0)
+
+        let result = a.map(e => equals(e, b).value == 1).reduce((x, y) => x || y, false)
+        return toInt(result ? 1 : 0)
+        // for(let i = 0; i < a.value.length; i++){
+            // if(equals(a.value[i], b).value == 1) return toInt(1)
+        // }
+        // return toInt(0)
     }
     if(isString(a)){
         for(let i = 0; i < a.value.length; i++){
@@ -698,7 +709,7 @@ const lines = (a) => {
         return toList(a.value.split("\n").map(toString))
     }
     if(isNumber(a)) return toString(a.value)
-    if(isList(a)) return toString(a.value.map(stringify).join("\n"))
+    if(isList(a)) return toString(a.map(stringify).to_array().join("\n"))
 }
 const words = (a) => {
     if(isString(a)){
@@ -729,6 +740,29 @@ const bitcoin = () => {
 
     return toFloat(json?.data?.amount ?? 0)
 }
+const inits = (a) => {
+    if(isInt(a)){
+        if(a.value < 0n) return new GList((self, index) => toInt(a.value + BigInt(index)), () => -a.toNumber(), -a.toNumber())
+        return new GList((self, index) => toInt(index + 1), () => a.toNumber(), a.toNumber())
+    }
+    if(isList(a)) return a.inits()
+    if(isString(a)) return todo()
+}
+const tails = (a) => {
+    if(isInt(a)){
+        if(a.value < 0n) return new GList((self, index) => toInt(a.value + BigInt(index + 1)), () => -a.toNumber(), -a.toNumber())
+        return new GList((self, index) => toInt(index), () => a.toNumber(), a.toNumber())
+    }
+    if(isList(a)) return a.tails()
+    if(isString(a)) return todo()
+}
+const lower = (a) => {
+    if(isInt(a)) return toInt(-a.value)
+    if(isFloat(a)) return toFloat(-a.value)
+    if(isString(a)) return toString(a.value.toLowerCase())
+    if(isList(a)) return a.map(lower)
+}
+        
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -771,6 +805,7 @@ const functions = {
     "transpose": arity(transpose, 1, 1),
     "slice": arity(slice, 2, 1),
     "sum": arity(sum, 1, 1),
+    "cumsum": arity(cumsum, 1, 1),
     "product": arity(product, 1, 1),
     iteraten,
     iteratewhile,
@@ -805,6 +840,9 @@ const functions = {
     "sort": arity(sort, 1, 1),
     "dice": arity(dice, 0, 1),
     "bitcoin": arity(bitcoin, 0, 1),
+    "inits": arity(inits, 1, 1),
+    "tails": arity(tails, 1, 1),
+    "lower": arity(lower, 1, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -813,6 +851,7 @@ const functions_compact = {
     "/": functions["/"],
     "%": functions["%"],
     "^": functions["^"],
+    "_": functions["lower"],
     "@": functions["apply"],
     "R": functions["repeat"],
     "m": functions["map"],
@@ -845,6 +884,7 @@ const functions_compact = {
     "T": functions["transpose"],
     "C": functions["slice"],
     "Σ": functions["sum"],
+    "∫": functions["cumsum"],
     "Π": functions["product"],
     "~": functions["pop"],
     "?": functions["ifelse"],
@@ -870,6 +910,8 @@ const functions_compact = {
     "🎲": functions["dice"],
     "₿": functions["bitcoin"],
     "n": functions["int"],
+    "ḣ": functions["inits"],
+    "ṫ": functions["tails"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     fold,

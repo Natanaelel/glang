@@ -1,4 +1,4 @@
-const { GInt, GFloat, GString, GList, GBlock } = require("./classes.js")
+const { GInt, GFloat, GString, GList, GBlock } = require("./types.js")
 
 
 const fromEscapedChar = char => {

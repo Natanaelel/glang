@@ -1,3 +1,7 @@
+const { GInt, GFloat, GString, GList, GBlock } = require("./types.js")
+// import { GInt, GFloat, GString, GList, GBlock } from "./types.js"
+
+
 class Stack {
     constructor(settings = {}){
         this.stack = []
@@ -7,7 +11,7 @@ class Stack {
         if(num == 0){
             if(this.stack.length == 0){
                 if(this.settings.warnings) console.error("popping from empty stack, returning 0")
-                return {"type": "int", "value": 0}
+                return new GInt(0n)
             }
             return this.stack.pop()
         }
@@ -28,31 +32,15 @@ class Stack {
     concat(values){
         this.stack = this.stack.concat(values)
     }
-    // pretty(self = this.stack){
-    //     const show = a => {
-    //         if(a === undefined || a === null) return `nil`
-    //         if(a.type == "list") return `[${a.value.to_array().map(show).join(", ")}]`
-    //         if(a.type == "string") return `"${a.value.toString().replace(/.|\s/g, m => {
-    //             if(m == "\n") return "\\n"
-    //             if(m == "\r") return "\\r"
-    //             if(m == "\f") return "\\f"
-    //             if(m == '"') return '\\"'
-    //             if(m == "\\") return "\\\\"
-    //             return m
-    //         })}"`
-    //         if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
-    //         return `${a.value}`
-    //     }
-    //     if(Array.isArray(self)) return `[${self.map(show).join(", ")}]`
-    //     if(self.type == "string") return self.value.toString()
-    //     // if(typeof self == "string" || self instanceof String) return self
-    //     return show(self)
-    // }
-    pretty(self = this.stack){
-        if(Array.isArray(self)){
-            self.map(x => x?.to_array_deep?.() ?? x)
-        }else if(self?.type == "list"){
-            self.to_array_deep()
+    pretty(self = this.stack, evaluated = false){
+        if(!evaluated){
+            if(Array.isArray(self)){
+                self.map(x => x?.to_array_deep?.() ?? x)
+                // return this.pretty(self, true)
+            }else if(self?.type == "list"){
+                self.to_array_deep()
+            }
+            return this.pretty(self, true)
         }
         const show = a => {
             if(a === undefined || a === null) return `nil`
