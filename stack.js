@@ -1,5 +1,4 @@
 const { GInt, GFloat, GString, GList, GBlock } = require("./types.js")
-// import { GInt, GFloat, GString, GList, GBlock } from "./types.js"
 
 
 class Stack {
@@ -55,12 +54,30 @@ class Stack {
         }
         // if(typeof self == "string" || self instanceof String) return self
         return show(self)
-        }
+    }
     clear(){
         this.stack = []
     }
-    top(){
-        return this.pretty(this.peek())
+    // top(){
+    //     return this.pretty(this.peek())
+    // }
+        
+    top(evaluated = false){
+        if(!evaluated){
+            this.stack.map(x => x?.to_array_deep?.() ?? x)
+            return this.top(true)
+        }
+        const show = a => {
+            if(a === undefined || a === null) return `nil`
+            if(Array.isArray(a)) return `[${a.map(show).join(", ")}]`
+            if(a.type == "string") return a.toString()
+            if(a.type == "int") return a.toString()
+            if(a.type == "float") return a.toString()
+            if(a.type == "list") return `[${a.to_array().map(show).join(", ")}]`
+            if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
+            return `${a.value}`
+        }
+        return show(this.peek())
     }
     raw(){
         const show = e => {

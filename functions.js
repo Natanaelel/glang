@@ -258,8 +258,13 @@ const length = (a) => {
 }
 const dup = (a) => [deepClone(a), deepClone(a)]
 const over = (a, b) => [a, b, deepClone(a)]
-const max = (a) => defs.max_by(a.value, e => e.value)
-const min = (a) => defs.max_by(a.value, e => -e.value)
+const max = (a) => {
+    if(isList(a)) return a.reduce((x, y) => x.compareTo(y) == 1 ? x : y)
+}
+const min = (a) => {
+    if(isList(a)) return a.reduce((x, y) => x.compareTo(y) == -1 ? x : y)
+}
+// const min = (a) => defs.max_by(a.value, e => -e.value)
 const wrap = (stack) => {
     let stack_content = [...stack.stack]
     stack.clear()
@@ -328,13 +333,15 @@ const equals = (a, b) => {
 
     if(isString(a)) return a.value === b.value ? true_val : false_val
 
-    if(isList(a)){
-        if(a.value.length != b.value.length) return false_val
-        for(let i = 0; i < a.value.length; i++){
-            if(equals(a.value[i], b.value[i]).value == 0) return false_val
-        }
-        return true_val
-    }
+
+    if(isList(a)) return a.equals(b) ? true_val : false_val
+    // if(isList(a)){
+    //     if(a.value.length != b.value.length) return false_val
+    //     for(let i = 0; i < a.value.length; i++){
+    //         if(equals(a.value[i], b.value[i]).value == 0) return false_val
+    //     }
+    //     return true_val
+    // }
     console.error(a)
     console.error(b)
     throw new Error(" whtat type ?!?!?!")
@@ -527,8 +534,9 @@ const minby = (stack, self) => {
 }
 const range_from_to = (a, b) => {
     if(isInt(a) && isInt(b)){
-        let length = Math.abs(a.toNumber() - b.toNumber())
-        if(a.value < b.value) return new GList((self, index) => toInt(BigInt(index) + a.value), () => length, length)
+        let length = Math.abs(a.toNumber() - b.toNumber()) + 1
+        if(a.value < b.value) return new GList((self, index) => toInt(BigInt(index) + a.value), () => length)
+        return new GList((self, index) => toInt(a.value - BigInt(index)), () => length)
         // let result = []
         // let diff = a.value < b.value ? 1n : -1n
         // for(let i = a.value; i != b.value; i += diff){
@@ -601,7 +609,11 @@ const int = (a) => {
 }
 const uniq = (a) => {
     if(isList(a)){
-        return a
+        let result = []
+        a.to_array().forEach(el => {
+            if(result.every(e => !e.equals(el))) result.push(el)
+        })
+        return GList.from(result)
         // if(a.all(isInt)){
         //     return toList([...new Set(a.value.map(e => e.value))].map(toInt))
         // }
@@ -719,11 +731,12 @@ const words = (a) => {
     if(isList(a)) return toString(a.value.map(stringify).join(" "))
 }
 const sort = (a) => {
+
     if(isString(a)) return toString([...a.value].sort().join(""))
-    if(!isList(a)) return
-    if(a.value.every(isString)) return toList(a.value.map(({value}) => value).sort().map(toString))
-    if(a.value.every(isInt)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(toInt))
-    if(a.value.every(isFloat)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(isFloat))
+    if(isList(a)) return a.sort()
+    // if(a.value.every(isString)) return toList(a.value.map(({value}) => value).sort().map(toString))
+    // if(a.value.every(isInt)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(toInt))
+    // if(a.value.every(isFloat)) return toList(a.value.map(({value}) => value).sort((x, y) => x - y).map(isFloat))
 }
 const dice = () => {
     return toInt(1 + Math.floor(Math.random() * 6))
@@ -762,7 +775,28 @@ const lower = (a) => {
     if(isString(a)) return toString(a.value.toLowerCase())
     if(isList(a)) return a.map(lower)
 }
-        
+const append = (a, b) => {
+    // todo string append
+    if(!isList(a)) return
+    return a.append(b)
+}
+const prepend = (a, b) => {
+    // todo string prepend
+    if(!isList(a)) return
+    return a.prepend(b)
+}
+const shuffle = (a) => {
+    if(isList(a)){
+        let arr = a.to_array()
+        let result = []
+        while(arr.length > 0){
+            let index = Math.floor(Math.random() * arr.length)
+            result.push(arr[index])
+            arr.splice(index, 1)
+        }
+        return GList.from(result)
+    }
+}
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -843,6 +877,9 @@ const functions = {
     "inits": arity(inits, 1, 1),
     "tails": arity(tails, 1, 1),
     "lower": arity(lower, 1, 1),
+    "append": arity(append, 2, 1),
+    "prepend": arity(prepend, 2, 1),
+    "shuffle": arity(shuffle, 1, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -858,7 +895,7 @@ const functions_compact = {
     "M": functions["mapWith"],
     "f": functions["filter"],
     "L": functions["length"],
-    ":": functions["dup"],
+    "D": functions["dup"],
     ";": functions["over"],
     "▲": functions["max"],
     "▼": functions["min"],
@@ -901,7 +938,7 @@ const functions_compact = {
     "#": functions["count"],
     "c": functions["chr"],
     "o": functions["ord"],
-    "⊂": functions["elem"],
+    "∈": functions["elem"],
     "¶": functions["lines"],
     "w": functions["words"],
     "¡": functions["iteratewhile"],
@@ -912,6 +949,9 @@ const functions_compact = {
     "n": functions["int"],
     "ḣ": functions["inits"],
     "ṫ": functions["tails"],
+    ":": functions["prepend"],
+    "r": functions["shuffle"],
+    "🌍": functions["get"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     fold,

@@ -28,16 +28,16 @@ let settings = {
 	// "logfunction": (self, command) => console.log(command.value, self.stack.stack)
 
 }
+// glob=0
 let g = new Glang(program, settings)
 g.run()
 // console.log(g)
-
 console.log(g.stack.pretty())
 console.log("")
 console.log(g.stack.top())
 console.log("")
+// console.log(glob)
 // console.log(g)
 // console.log(g.stack.pretty())
 // console.log(g.stack.raw())
-
 

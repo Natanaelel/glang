@@ -22,6 +22,11 @@ class GInt {
     equals(other){
         return (other instanceof GInt) && other.value == this.value
     }
+    compareTo(other){
+        if(other instanceof GInt) return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        if(other instanceof GFloat) return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        throw new TypeError(`can't compare ${this.type} with ${other.type ?? other}`)
+    }
     isInt(){ return true}
     isFloat(){ return false}
     isString(){ return false}
@@ -50,6 +55,11 @@ class GFloat {
     }
     equals(other){
         return (other instanceof GFloat) && other.value == this.value
+    }
+    compareTo(other){
+        if(other instanceof GFloat) return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        if(other instanceof GInt) return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        throw new TypeError(`can't compare ${this.type} with ${other.type ?? other}`)
     }
     isInt(){ return false}
     isFloat(){ return true}
@@ -84,6 +94,10 @@ class GString {
     equals(other){
         return (other instanceof GString) && other.value == this.value
     }
+    compareTo(other){
+        if(other instanceof GString) return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        throw new TypeError(`can't compare ${this.type} with ${other.type ?? other}`)
+    }
     isInt(){ return false}
     isFloat(){ return false}
     isString(){ return true}
@@ -93,7 +107,7 @@ class GString {
 class GListError extends Error {}
 
 class GList {
-    constructor(func, get_size, size = Infinity){
+    constructor(func, get_size){
         if(func instanceof GList){
             return func
         }
@@ -102,18 +116,56 @@ class GList {
         }
         // console.log(func)
         this.func = func // func = (this, index) => element
-        this.get_size = get_size || (() => this.to_array().length)
+        this.get_size = get_size ?? (() => this._findOutLength())
         this.list = []
-        this.size = size
+        this.size = null
+
         this.type = "list"
     }
     length(){
-        return this.get_size?.() ?? this.get_size
+        if(this.size === null){
+            if(this.get_size !== null){
+                this.size = this.get_size()
+            }else{
+                this.size = this._findOutLength()
+                this.get_size = () => this.size
+            }
+        }
+        return this.size
+    }
+    _findOutLength(max_length = Infinity){
+
+        for(let i = 0;i <= max_length; i++){
+            if(i in this.list){
+                continue
+            }
+            else{
+                try{
+                    this.func(this, i)
+                }
+                catch(e){
+                    if(!(e instanceof GListError)) throw e
+                    return i
+                }
+            }
+        }
+        return i
+    }
+    _isLengthGreaterThan(compare_len){
+        for(let i = 0; true; i++){
+            if(i > compare_len) return true
+            try{
+                this.at(i)
+            }catch(e){
+                if(!(e instanceof GListError)) throw e
+                return false
+            }
+        }
     }
     isFullyEvaluated(){
         let evaluated = 0
         this.list.forEach(_ => evaluated++)
-        return evaluated === this.get_size() ?? this.size
+        return evaluated === this.length()
     }
     toString(max_elements = Infinity){
         return "[" + this.take(max_elements).to_array().map(x => x.toString()).join(", ") + "]"
@@ -121,18 +173,34 @@ class GList {
     toRawString(max_elements = Infinity){
         return "[" + this.take(max_elements).to_array().map(x => x.toRawString?.() ?? x.toString()).join(", ") + "]"
     }
+    equals(other){
+        return (other instanceof GList) && this.get_size() == other.get_size() && GList.zipWith((x, y) => x.equals(y), this, other).all()
+    }
+    compareTo(other){
+        if(other instanceof GList){
+            if(other.get_size() == 0) return this.get_size() == 0 ? 0 : 1
+            if(this.get_size() == 0) return other.get_size() == 0 ? 0 : -1
+            let compare_head = this.head().compareTo(other.head())
+            if(compare_head == 0){
+                return this.tail().compareTo(other.tail())
+            }
+            return compare_head
+            // return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        }
+        throw new TypeError(`can't compare ${this.type} with ${other.type ?? other}`)
+    }
     isInt(){return false}
     isFloat(){return false }
     isString(){return false }
     isList(){ return true}
     toBool(){
-        if(this.length !== undefined) return this.size > 0
-        return this.get_size() > 0
+        return this._isLengthGreaterThan(0)
     }
     at(index){
-        if(index >= this.get_size()) throw new GListError("index too large")
-        if(index < 0) throw new GListError("index too small")
-        
+        if(index >= this.length()) throw new GListError("index too large")
+        if(index < 0){
+            throw new GListError("index too small")
+        }
         if(index in this.list){
             return this.list[index]
         }
@@ -158,7 +226,8 @@ class GList {
                 }
             return filtered[index]
         }
-        return new GList(get_at, () => this.get_size())
+        // return new GList(get_at, () => this.get_size())
+        return new GList(get_at)
     }
     head(){
         return this.at(0)
@@ -216,16 +285,35 @@ class GList {
         }
         return new GList(get_at, () => this.get_size() + other.get_size())
     }
+    prepend(value){
+        const get_at = (self, index) => {
+            return index == 0 ? value : this.at(index - 1)
+        }
+        return new GList(get_at, () => this.get_size() + 1)
+    }
+    append(value){
+        const get_at = (self, index) => {
+            try{
+                return this.at(index)
+            }
+            catch(e){
+                if(!(e instanceof GListError)) throw e
+                
+                if(index == this.get_size()) return value
+                throw e
+
+            }
+        }
+        return new GList(get_at, () => this.get_size() + 1)
+    }
     to_array(max_elements = Infinity){ // todo: respect max_elements
         let arr = []
-        this.size = this.get_size()
-        for(let i = 0; i < this.size; i++){
+        for(let i = 0; i < this.length(); i++){
             try{
                 arr.push(this.at(i))
             }catch(e){
                 if(!(e instanceof GListError)) throw e
-                this.size = i
-                this.get_size = () => this.size
+                this.get_size = () => i
                 return arr
             }
         }
@@ -248,15 +336,15 @@ class GList {
                 return this.at(index2).at(index1)
             
             }
-            return new GList(get_at2, () => self.get_size(), self.get_size())
+            return new GList(get_at2, () => self.get_size())
         }
-        return new GList(get_at, () => this.at(0).get_size(), this.at(0).get_size())
+        return new GList(get_at, () => this.at(0).get_size())
     }
     reverse(){
         const get_at = (self, index) => {
             return this.at(self.get_size() - index - 1)
         }
-        return new GList(get_at, () => this.get_size(), this.size)
+        return new GList(get_at, () => this.get_size())
     }
     inits(){
         return GList.zipWith((_, len) => this.take(len), this, GList.naturals).take(this.get_size())
@@ -270,14 +358,28 @@ class GList {
     any(func = x => x){
         return this.to_array().some(func)
     }
-    equals(other){
-        return (other instanceof GList) && this.get_size() == other.get_size() && this.zipWith((x, y) => x.equals(y)).all()
+    sort(func = (a, b) => a.compareTo(b)){
+        // glob++
+        const f = (self) => {
+        if(self.length() < 2) return self
+        let pivot = self.head()
+        // console.log(pivot)
+        let less_than_or_equal = self.tail().filter(el => func(el, pivot) <= 0)
+        let greater_than = self.tail().filter(el => func(el, pivot) == 1)
+        
+        let result = less_than_or_equal.call(x => x.sort(func)).concat(greater_than.call(x => x.sort(func)).prepend(pivot)).take(self.length())
+        // console.log(self.get_size())
+        // console.log(result)
+        // console.log(++GList.global_i)
+        return result
+        }
+        return this.call(f)
     }
     static zipWith(func, a, b){
         const get_at = (self, index) => {
             return func(a.at(index), b.at(index))
         }
-        return new GList(get_at, () => Math.min(a.get_size() + b.get_size()), Math.min(a.get_size() + b.get_size()))
+        return new GList(get_at, () => Math.min(a.get_size() + b.get_size()))
     }
     static repeat(element){
         return new GList(() => element, () => Infinity)
@@ -292,7 +394,7 @@ class GList {
         const get_at = (self, index) => {
             return arr[index]
         }
-        return new GList(get_at, () => arr.length, arr.length)
+        return new GList(get_at, () => arr.length)
     }
     static iterate(func, start_val){
         const get_at = (self, index) => {
@@ -301,8 +403,13 @@ class GList {
         }
         return new GList(get_at, () => Infinity)
     }
+    static pure(element){
+        return GList.from([element])
+    }
     static naturals = new GList((_, i) => i + 1, () => Infinity)
     static reals = new GList((_, i) => 0 + (((i & 1) << 1) -1) * ((i + 1) >> 1), () => Infinity)
+    static empty = GList.from([])
+    
 }
 
 class GBlock {
@@ -318,4 +425,3 @@ module.exports = {
     GList,
     GBlock
 }
-
