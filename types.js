@@ -165,6 +165,7 @@ class GList {
     isFullyEvaluated(){
         let evaluated = 0
         this.list.forEach(_ => evaluated++)
+        console.log(evaluated, this.length())
         return evaluated === this.length()
     }
     toString(max_elements = Infinity){
@@ -326,6 +327,12 @@ class GList {
             return x
         })
     }
+    force_evaluate_deep(){
+        this.list = this.to_array()
+        this.list.forEach(x => {
+            if(x instanceof GList) x.force_evaluate_deep()
+        })
+    }
     reduce(...args){
         return this.to_array().reduce(...args)
     }
@@ -359,27 +366,29 @@ class GList {
         return this.to_array().some(func)
     }
     sort(func = (a, b) => a.compareTo(b)){
-        // glob++
-        const f = (self) => {
-        if(self.length() < 2) return self
-        let pivot = self.head()
-        // console.log(pivot)
-        let less_than_or_equal = self.tail().filter(el => func(el, pivot) <= 0)
-        let greater_than = self.tail().filter(el => func(el, pivot) == 1)
+        // const f = (self) => {
+        // if(self.length() < 2) return self
+        // let pivot = self.head()
+        // // console.log(pivot)
+        // let less_than_or_equal = self.tail().filter(el => func(el, pivot) <= 0)
+        // let greater_than = self.tail().filter(el => func(el, pivot) == 1)
         
-        let result = less_than_or_equal.call(x => x.sort(func)).concat(greater_than.call(x => x.sort(func)).prepend(pivot)).take(self.length())
+        // let result = less_than_or_equal.call(x => x.sort(func)).concat(greater_than.call(x => x.sort(func)).prepend(pivot)).take(self.length())
         // console.log(self.get_size())
         // console.log(result)
         // console.log(++GList.global_i)
-        return result
+        
+        const _sort = self => {
+            return GList.from(self.to_array().sort(func))
         }
-        return this.call(f)
+
+        return this.call(_sort)
     }
     static zipWith(func, a, b){
         const get_at = (self, index) => {
             return func(a.at(index), b.at(index))
         }
-        return new GList(get_at, () => Math.min(a.get_size() + b.get_size()))
+        return new GList(get_at, () => Math.min(a.get_size(), b.get_size()))
     }
     static repeat(element){
         return new GList(() => element, () => Infinity)
@@ -415,7 +424,29 @@ class GList {
 class GBlock {
     constructor(b){
         this.value = b
+        this.type = "block"
     }
+    toString(){
+        return "{ " + this.value.map(e => e.type == "func" ? e.value : e.toString()).join(" ") + " }"
+    }
+    toRawString(){
+        return this.toString()
+    }
+    toBool(){
+        return true
+    }
+    equals(other){
+        return (other instanceof GInt) && other.value == this.value
+    }
+    compareTo(other){
+        if(other instanceof GInt) return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        if(other instanceof GFloat) return this.value < other.value ? -1 : this.value > other.value ? 1 : 0
+        throw new TypeError(`can't compare ${this.type} with ${other.type ?? other}`)
+    }
+    isInt(){ return true}
+    isFloat(){ return false}
+    isString(){ return false}
+    isList(){ return false}
 }
 
 module.exports = {

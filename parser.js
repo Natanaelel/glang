@@ -79,10 +79,7 @@ function parse(tokens){
 		}
 		if(type == "special" && value == "{"){
             let [func, rest] = parseFunc(tokens)
-			parsed.push({
-                "type": "block",
-				"value": func
-			})
+			parsed.push(new GBlock(func))
 			tokens = rest
 			continue W
 		}
@@ -103,10 +100,7 @@ function parseFunc(tokens){
 		}
 		else if(type == "special" && value == "{"){
             let [t_func, rest] = parseFunc(tokens)
-			func.push({
-                "type": "block",
-				"value": t_func
-			})
+			func.push(new GBlock(t_func))
 			tokens = rest
 		}
 		else{

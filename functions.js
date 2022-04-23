@@ -88,6 +88,7 @@ const multiply = (a, b) => {
     if(isNumber(a) && isList(b)) return b.map(e => multiply(e, a))
     if(isList(a) && isNumber(b)) return a.map(e => multiply(e, b))
     if(isList(a) && isList(b)) return a.map((e, i) => multiply(e, b.at(i)))
+    if(isString(a) && isNumber(b)) return toString(a.value.repeat(b.toNumber()) + a.value.slice(0, a.value.length * (b.toNumber() % 1)))
     throw new Error(`can't use ${"*"} on ${a.type} and ${b.type}`)
 }
 const divide = (a, b) => {
@@ -103,16 +104,15 @@ const mod = (a, b) => {
     if(isNumber(a) && isNumber(b)) return toFloat(a.value % b.value)
     if(isNumber(a) && isList(b)) return b.map(e => mod(a, e))
     if(isList(a) && isNumber(b)) return a.map(e => mod(e, b))
-    // if(isList(a) && isList(b)) return toList(a.value.map((e, i) => mod(e, b[i])))
     if(isList(a) && isList(b)) return GList.zipWith(mod, a, b)
     throw new Error(`can't use ${"%"} on ${a.type} and ${b.type}`)
 }
 const power = (a, b) => {
     if(isInt(a) && isInt(b)) return toInt(a.value ** b.value)
-    if(isNumber(a) && isNumber(b)) return toFloat(a.value ** b.value)
-    if(isNumber(a) && isList(b)) return toList(b.value.map(e => mod(e, a)))
-    if(isList(a) && isNumber(b)) return toList(a.value.map(e => mod(e, b)))
-    if(isList(a) && isList(b)) return toList(a.value.map((e, i) => mod(e, b[i])))
+    if(isNumber(a) && isNumber(b)) return toFloat(a.toNumber() ** b.toNumber())
+    if(isNumber(a) && isList(b)) return b.map(e => power(a, e))
+    if(isList(a) && isNumber(b)) return a.map(e => power(e, b))
+    if(isList(a) && isList(b)) return GList.zipWith(power, a, b)
     throw new Error(`can't use ${"^"} on ${a.type} and ${b.type}`)
 }
 const apply = (stack, self) => {
@@ -282,6 +282,12 @@ const string = (a) => {
     if(isList(a)) return toString(String.fromCharCode(...a.value.map(e => e.value)))
     if(isInt(a)) return toString(String.fromCharCode(a.value))
 }
+const show = (a) => {
+    if(isInt(a)) return a.toRawString()
+    if(isFloat(a)) return a.toRawString()
+    if(isString(a)) return a.toRawString()
+    if(isList(a)) return a.toRawString()
+}
 const swap = (a, b) => [b, a]
 const take = (a, b) => {
     if(isList(a) && isInt(b)) return toList(a.take(b.toNumber()))
@@ -361,13 +367,6 @@ const greater_than = (a, b) => {
 }
 const transpose = (a) => {
     if(isList(a) && isList(a.at(0))) return a.transpose()
-    // if(isList(a) && a.value.length > 0 && isList(a.value[0])){ // is at least 2d
-        // let min_length = Math.min(...a.value.map(e => e.value.length))
-        // let raw_transposed = Array(min_length).fill().map((_,i)=>a.value.map(r=>r.value[i]))
-        // let glangified = toList(raw_transposed.map(toList))
-        // return glangified
-    // }
-    return
 }
 const slice = (a, b) => {
     if(!isNumber(b)) return

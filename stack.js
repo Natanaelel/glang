@@ -67,17 +67,17 @@ class Stack {
             this.stack.map(x => x?.to_array_deep?.() ?? x)
             return this.top(true)
         }
-        const show = a => {
+        const show = (a, level = -1) => {
             if(a === undefined || a === null) return `nil`
             if(Array.isArray(a)) return `[${a.map(show).join(", ")}]`
-            if(a.type == "string") return a.toString()
+            if(a.type == "string") return level == 0 ? a.toString() : a.toRawString()
             if(a.type == "int") return a.toString()
             if(a.type == "float") return a.toString()
-            if(a.type == "list") return `[${a.to_array().map(show).join(", ")}]`
-            if(a.type == "block") return `{${a.value.map(show).join(" ")}}`
+            if(a.type == "list") return a.toRawString() // `[${a.to_array().map(show).join(", ")}]`
+            if(a.type == "block") return a.toString() // `{${a.value.map(show).join(" ")}}`
             return `${a.value}`
         }
-        return show(this.peek())
+        return show(this.peek(), 0)
     }
     raw(){
         const show = e => {

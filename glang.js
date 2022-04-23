@@ -43,6 +43,7 @@ class Glang {
     run(){
         // do each command
         for(let command of this.commands){
+            if(command.value == "quit" || command.value == "q") break
             this.doCommand(command)
         }
 
@@ -52,12 +53,14 @@ class Glang {
             let value = this.stack.stack[i]
             if(value instanceof GList){
                 if(!value.isFullyEvaluated()){
-                    value.to_array_deep()
+                    // value.to_array_deep()
+                    this.stack.stack[i].force_evaluate_deep()
                     i = 0
+                    console.log("redo")
+                    console.log(this.stack.stack)
                 }
             }
         }
-        
 
         return this
     }
