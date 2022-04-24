@@ -56,8 +56,6 @@ class Glang {
                     // value.to_array_deep()
                     this.stack.stack[i].force_evaluate_deep()
                     i = 0
-                    console.log("redo")
-                    console.log(this.stack.stack)
                 }
             }
         }

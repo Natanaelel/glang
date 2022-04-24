@@ -64,14 +64,21 @@ const isTruthy = (a) => {
     console.error(a)
     throw new Error("what kind of value is this?!")
 }
+
+const vectorize = (func, a, b) => {
+    if(isList(a) && isList(b)) return GList.zipWith(func, a, b)
+    if(isList(a)) return a.map(e => func(e, b))
+    if(isList(b)) return b.map(e => func(a, e))
+    return func(a, b)
+}
+
 const plus = (a, b) => {
     if(isInt(a) && isInt(b)) return toInt(a.value + b.value)
     if(isNumber(a) && isNumber(b)) return toFloat(a.toNumber() + b.toNumber())
-    if(isNumber(a) && isList(b)) return b.map(e => plus(e, a))
-    if(isList(a) && isNumber(b)) return a.map(e => plus(e, b))
-    // if(isList(a) && isList(b)) return toList(a.value.map((e, i) => plus(e, b[i]))) // vectorizes
+    if(isNumber(a) && isList(b)) return b.map(e => plus(e, a)) // vec
+    if(isList(a) && isNumber(b)) return a.map(e => plus(e, b)) // vec
     if(isList(a) && isList(b)) return a.concat(b) // concat
-    if(isString(a) && isString(b)) return toString(a.value + b.value)
+    if(isString(a) && isString(b)) return toString(a.value + b.value) // concat
     throw new Error(`can't use ${"+"} on ${a.type} and ${b.type}`)
 }
 const minus = (a, b) => {
@@ -79,7 +86,7 @@ const minus = (a, b) => {
     if(isNumber(a) && isNumber(b)) return toFloat(a.toNumber() - b.toNumber())
     if(isNumber(a) && isList(b)) return b.map(e => minus(e, a))
     if(isList(a) && isNumber(b)) return a.map(e => minus(e, b))
-    if(isList(a) && isList(b)) return a.map((e, i) => minus(e, b.at(i)))
+    // if(isList(a) && isList(b)) return a.map((e, i) => minus(e, b.at(i)))
     throw new Error(`can't use ${"-"} on ${a.type} and ${b.type}`)
 }
 const multiply = (a, b) => {
@@ -328,7 +335,20 @@ const join = (a, b) => {
 const pair = (a, b) => {
     return toList([a, b])
 }
-const equals = (a, b) => {
+const equals = (a, b) => { // vectorizes
+
+    let true_val = toInt(1)
+    let false_val = toInt(0)
+
+    if(isNumber(a) && isNumber(b)) return a.value == b.value ? true_val : false_val
+    if(isString(a) && isString(b)) return a.value === b.value ? true_val : false_val
+    if(isBlock(a) && isBlock(b)) return a.toString() == b.toString() ? true_val : false_val
+    return vectorize(equals, a, b)
+    // console.error(a)
+    // console.error(b)
+    throw new Error(" whtat type ?!?!?!")
+}
+const matches = (a, b) => {
 
     let true_val = toInt(1)
     let false_val = toInt(0)
@@ -831,6 +851,7 @@ const functions = {
     "join": arity(join, 2, 1),
     "pair": arity(pair, 2, 1),
     "equals": arity(equals, 2, 1),
+    "matches": arity(matches, 2, 1),
     "not_equals": arity(not_equals, 2, 1),
     "<": arity(less_than, 2, 1),
     ">": arity(greater_than, 2, 1),
