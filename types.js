@@ -72,6 +72,9 @@ class GString {
         this.value = `${str}`
         this.type = "string"
     }
+    get length(){
+        return this.value.length
+    }
     toString(){
         return this.value
     }
@@ -122,7 +125,7 @@ class GList {
 
         this.type = "list"
     }
-    length(){
+    get length(){
         if(this.size === null){
             if(this.get_size !== null){
                 this.size = this.get_size()
@@ -165,8 +168,8 @@ class GList {
     isFullyEvaluated(){
         let evaluated = 0
         this.list.forEach(_ => evaluated++)
-        console.log(evaluated, this.length())
-        return evaluated === this.length()
+        // console.log(evaluated, this.length())
+        return evaluated === this.length
     }
     toString(max_elements = Infinity){
         return "[" + this.take(max_elements).to_array().map(x => x.toString()).join(", ") + "]"
@@ -198,7 +201,7 @@ class GList {
         return this._isLengthGreaterThan(0)
     }
     at(index){
-        if(index >= this.length()) throw new GListError("index too large")
+        if(index >= this.length) throw new GListError("index too large")
         if(index < 0){
             throw new GListError("index too small")
         }
@@ -309,7 +312,7 @@ class GList {
     }
     to_array(max_elements = Infinity){ // todo: respect max_elements
         let arr = []
-        for(let i = 0; i < this.length(); i++){
+        for(let i = 0; i < this.length; i++){
             try{
                 arr.push(this.at(i))
             }catch(e){
@@ -335,6 +338,20 @@ class GList {
     }
     reduce(...args){
         return this.to_array().reduce(...args)
+    }
+    fold(...args){
+        return this.reduce(...args)
+    }
+    scan(...args){
+        let func = args[0]
+        let this_ = this
+        const get_at = (self, index) => {
+            if(index == 0){
+                return this_.at(0)
+            }
+            return func(self.at(index - 1), this_.at(index))
+        }
+        return new GList(get_at, () => this.get_size())
     }
     transpose(){
         let self = this
@@ -383,6 +400,16 @@ class GList {
         }
 
         return this.call(_sort)
+    }
+    slicesOfLength(len){
+        const get_at = (self, index) => {
+            const get_at2 = (self2, index2) => {
+                return this.at(index * len + index2)
+            }
+            return new GList(get_at2, () => len)
+        }
+
+        return new GList(get_at, () => this.get_size() / len)
     }
     static zipWith(func, a, b){
         const get_at = (self, index) => {

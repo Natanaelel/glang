@@ -259,7 +259,7 @@ const dump = (stack) => {
 }
 const length = (a) => {
     if(isString(a)) return toInt(a.value.length)
-    if(isList(a)) return toInt(a.length())
+    if(isList(a)) return toInt(a.length)
     if(isNumber(a)) return toInt(a.value.toString().length)
 
 }
@@ -391,11 +391,12 @@ const transpose = (a) => {
 const slice = (a, b) => {
     if(!isNumber(b)) return
     if(isList(a)){
-        let result = []
-        for(let i = 0; i < a.value.length; i += b.value){
-            result.push(a.value.slice(i, i + b.value))
-        }
-        return toList(result.map(toList))
+        return a.slicesOfLength(b.toNumber())
+        // let result = []
+        // for(let i = 0; i < a.value.length; i += b.value){
+        //     result.push(a.value.slice(i, i + b.value))
+        // }
+        // return toList(result.map(toList))
     }
     if(isString(a)){
         let result = []
@@ -581,18 +582,18 @@ const fold = (stack, self) => {
     let a = stack.pop() // arr
 
     if(isList(a) && isBlock(b)){
-        if(a.value.length == 0){ // if empty, push 0
+        if(a.length == 0){ // if empty, push 0
             stack.push(toInt(0))
             return
         }
-        let val = a.value[0]
-        for(let i = 1; i < a.value.length; i++){
-            stack.push(val)
-            stack.push(a.value[i])
+
+        let result = a.reduce((x, y) => {
+            stack.push(x)
+            stack.push(y)
             applyBlock(b, stack, self)
-            val = stack.pop()
-        }
-        stack.push(val)
+            return stack.pop()
+        })
+        stack.push(result)
         return
     }
 
@@ -603,25 +604,47 @@ const scan = (stack, self) => {
     let a = stack.pop() // arr
 
     if(isList(a) && isBlock(b)){
-        if(a.value.length == 0){ // if empty, push []
-            stack.push(toList([]))
+        if(a.length == 0){ // if empty, push 0
+            stack.push(toInt(0))
             return
         }
-        let val = a.value[0]
-        let result = [val]
-        for(let i = 1; i < a.value.length; i++){
-            stack.push(val)
-            stack.push(a.value[i])
+
+        let result = a.scan((x, y) => {
+            stack.push(x)
+            stack.push(y)
             applyBlock(b, stack, self)
-            val = stack.pop()
-            result.push(val)
-        }
-        stack.push(toList(result))
+            return stack.pop()
+        })
+        stack.push(result)
         return
     }
 
     error("scan", a, b)
 }
+// const scan = (stack, self) => {
+//     let b = stack.pop() // block
+//     let a = stack.pop() // arr
+
+//     if(isList(a) && isBlock(b)){
+//         if(a.value.length == 0){ // if empty, push []
+//             stack.push(toList([]))
+//             return
+//         }
+//         let val = a.value[0]
+//         let result = [val]
+//         for(let i = 1; i < a.value.length; i++){
+//             stack.push(val)
+//             stack.push(a.value[i])
+//             applyBlock(b, stack, self)
+//             val = stack.pop()
+//             result.push(val)
+//         }
+//         stack.push(toList(result))
+//         return
+//     }
+
+//     error("scan", a, b)
+// }
 const int = (a) => {
     if(isList(a)) return
     return toInt(a.value)
@@ -747,7 +770,7 @@ const words = (a) => {
         return toList(a.value.split(" ").map(toString))
     }
     if(isNumber(a)) return toString(a.value)
-    if(isList(a)) return toString(a.value.map(stringify).join(" "))
+    if(isList(a)) return toString(a.map(stringify).to_array().join(" "))
 }
 const sort = (a) => {
 
@@ -815,6 +838,9 @@ const shuffle = (a) => {
         }
         return GList.from(result)
     }
+}
+const empty = () => {
+    return GList.empty
 }
 
 const functions = {
@@ -900,6 +926,7 @@ const functions = {
     "append": arity(append, 2, 1),
     "prepend": arity(prepend, 2, 1),
     "shuffle": arity(shuffle, 1, 1),
+    "empty": arity(empty, 0, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -970,15 +997,16 @@ const functions_compact = {
     "ḣ": functions["inits"],
     "ṫ": functions["tails"],
     ":": functions["prepend"],
+    ".": functions["append"],
     "r": functions["shuffle"],
     "🌍": functions["get"],
+    "F": functions["fold"],
+    "G": functions["scan"],
+    "ø": functions["empty"],
+    "±": functions["sign"],
+    "i": functions["index"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
-    fold,
-    scan,
-    "get": arity(web_get, 1, 1),
-    "sign": arity(sign, 1, 1),
-    "index": arity(index, 2, 1),
     "odd": arity(odd, 1, 1),
     "even": arity(even, 1, 1),
 }
