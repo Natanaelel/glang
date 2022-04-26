@@ -54,8 +54,8 @@ class Glang {
             if(value instanceof GList){
                 if(!value.isFullyEvaluated()){
                     // value.to_array_deep()
-                    this.stack.stack[i].force_evaluate_deep()
-                    i = 0
+                    // this.stack.stack[i].force_evaluate_deep()
+                    // i = 0
                 }
             }
         }

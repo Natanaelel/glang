@@ -290,14 +290,15 @@ const string = (a) => {
     if(isInt(a)) return toString(String.fromCharCode(a.value))
 }
 const show = (a) => {
-    if(isInt(a)) return a.toRawString()
-    if(isFloat(a)) return a.toRawString()
-    if(isString(a)) return a.toRawString()
-    if(isList(a)) return a.toRawString()
+    if(isInt(a)) return toString(a.toRawString())
+    if(isFloat(a)) return toString(a.toRawString())
+    if(isString(a)) return toString(a.toRawString())
+    if(isList(a)) return toString(a.toRawString())
+    if(isBlock(a)) return toString(a.toRawString())
 }
 const swap = (a, b) => [b, a]
 const take = (a, b) => {
-    if(isList(a) && isInt(b)) return toList(a.take(b.toNumber()))
+    if(isList(a) && isInt(b)) return a.take(b.toNumber())
     if(isString(a) && isInt(b)) return toString(a.value.slice(0, b.value))
 }
 const drop = (a, b) => {
@@ -573,8 +574,14 @@ const divisors = (a) => {
 }
 const at = (a, b) => { // modular indexing
     if(isList(a) && isInt(b)){
-        let length = a.value.length
-        return a.value[(b.value % length + length) % length]
+        // let length = a.value.length
+        // return a.value[(b.value % length + length) % length]
+        try {
+            return a.at(b.toNumber())
+        }catch(e){
+            if(!(e instanceof GListError)) throw e
+            return a.at((b.toNumber() % a.length + a.length) % a.length)
+        }
     }
 }
 const fold = (stack, self) => {
@@ -751,6 +758,7 @@ const elem = (a, b) => {
         // return toInt(0)
     }
     if(isString(a)){
+        // if([...a.value].length == 1) return toInt(a.value)
         for(let i = 0; i < a.value.length; i++){
             if(equals(toString(a.value[i]), b).value == 1) return toInt(1)
         }
@@ -842,6 +850,30 @@ const shuffle = (a) => {
 const empty = () => {
     return GList.empty
 }
+const iterate = (stack, self) => {
+    
+    let b = stack.pop() // block
+    let a = stack.pop() // any
+
+    if(isBlock(b)){
+        const func = (v) => {
+            stack.push(v)
+            applyBlock(b, stack, self)
+            return stack.pop()
+        }
+        
+        stack.push(GList.iterate(func, a))
+        return
+    }
+
+    error("iterate", a, b)
+}
+const and = (a, b) => {
+    return toInt(isTruthy(a) && isTruthy(b) ? 1 : 0)
+}
+const or = (a, b) => {
+    return toInt(isTruthy(a) || isTruthy(b) ? 1 : 0)
+}
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -887,6 +919,7 @@ const functions = {
     "sum": arity(sum, 1, 1),
     "cumsum": arity(cumsum, 1, 1),
     "product": arity(product, 1, 1),
+    iterate,
     iteraten,
     iteratewhile,
     ifelse,
@@ -927,6 +960,9 @@ const functions = {
     "prepend": arity(prepend, 2, 1),
     "shuffle": arity(shuffle, 1, 1),
     "empty": arity(empty, 0, 1),
+    "show": arity(show, 1, 1),
+    "and": arity(and, 2, 1),
+    "or": arity(or, 2, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -936,7 +972,8 @@ const functions_compact = {
     "%": functions["%"],
     "^": functions["^"],
     "_": functions["lower"],
-    "@": functions["apply"],
+    "µ": functions["apply"],
+    "@": functions["at"],
     "R": functions["repeat"],
     "m": functions["map"],
     "M": functions["mapWith"],
@@ -949,7 +986,7 @@ const functions_compact = {
     "`": functions["dump"],
     "W": functions["wrap"],
     "Ẇ": functions["wrapN"],
-    "s": functions["string"],
+    "s": functions["show"],
     "$": functions["swap"],
     "↑": functions["take"],
     "↓": functions["drop"],
@@ -989,7 +1026,8 @@ const functions_compact = {
     "¶": functions["lines"],
     "w": functions["words"],
     "¡": functions["iteratewhile"],
-    "!": functions["iteraten"],
+    "‼": functions["iteraten"],
+    "!": functions["iterate"],
     "S": functions["sort"],
     "🎲": functions["dice"],
     "₿": functions["bitcoin"],
@@ -1005,6 +1043,8 @@ const functions_compact = {
     "ø": functions["empty"],
     "±": functions["sign"],
     "i": functions["index"],
+    "&": functions["and"],
+    "|": functions["or"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     "odd": arity(odd, 1, 1),

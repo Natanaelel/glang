@@ -110,7 +110,7 @@ class GString {
 class GListError extends Error {}
 
 class GList {
-    constructor(func, get_size){
+    constructor(func, get_size = Infinity){
         if(func instanceof GList){
             return func
         }
@@ -119,7 +119,7 @@ class GList {
         }
         // console.log(func)
         this.func = func // func = (this, index) => element
-        this.get_size = get_size ?? (() => this._findOutLength())
+        this.get_size = typeof get_size == "function" ? get_size : (() => this._findOutLength(get_size))
         this.list = []
         this.size = null
 
@@ -175,7 +175,17 @@ class GList {
         return "[" + this.take(max_elements).to_array().map(x => x.toString()).join(", ") + "]"
     }
     toRawString(max_elements = Infinity){
-        return "[" + this.take(max_elements).to_array().map(x => x.toRawString?.() ?? x.toString()).join(", ") + "]"
+        let arr = this.map(x => x.toRawString?.() ?? x.toString())
+        if(max_elements == Infinity) return "[" + arr.to_array().join(", ") + "]"
+        let str = arr.to_array().join(", ") + ", ... ]"
+        try{
+            this.at(max_elements)
+            return "[" + str + ", ... ]"
+        }catch(e){
+            if(!(e instanceof GListError)) throw e
+            return "[" + str + "]"
+        }
+        // return "[" + this.take(max_elements).to_array().map(x => x.toRawString?.() ?? x.toString()).join(", ") + "]"
     }
     equals(other){
         return (other instanceof GList) && this.get_size() == other.get_size() && GList.zipWith((x, y) => x.equals(y), this, other).all()
@@ -230,8 +240,7 @@ class GList {
                 }
             return filtered[index]
         }
-        // return new GList(get_at, () => this.get_size())
-        return new GList(get_at)
+        return new GList(get_at, () => this.get_size()) // could be incorrect
     }
     head(){
         return this.at(0)
@@ -249,7 +258,10 @@ class GList {
     }
     take(num){
         const get_at = (self, index) => this.at(index)
-        return new GList(get_at, () => Math.min(num, this.get_size()))
+        return new GList(get_at, () => {
+            if(this._isLengthGreaterThan(num)) return num
+            return this.get_size()
+        })
     }
     take_while(predicate){ // recurively defined
         const get_at = (self, index) => {    
@@ -312,7 +324,7 @@ class GList {
     }
     to_array(max_elements = Infinity){ // todo: respect max_elements
         let arr = []
-        for(let i = 0; i < this.length; i++){
+        for(let i = 0; i < Math.min(this.length, max_elements); i++){
             try{
                 arr.push(this.at(i))
             }catch(e){
