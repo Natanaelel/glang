@@ -758,7 +758,9 @@ const elem = (a, b) => {
         // return toInt(0)
     }
     if(isString(a)){
-        // if([...a.value].length == 1) return toInt(a.value)
+        if([...a.value].length == 1) return toInt(a.value.includes(b.value) ? 1 : 0)
+        return toInt(a.value.includes(b.value) ? 1 : 0)
+        // vvv ?
         for(let i = 0; i < a.value.length; i++){
             if(equals(toString(a.value[i]), b).value == 1) return toInt(1)
         }
