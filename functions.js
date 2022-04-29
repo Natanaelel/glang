@@ -509,9 +509,10 @@ const even = (a) => {
 const rotate = (a, b) => {
     if(!isInt(b)) return
     if(isList(a)){
-        let length = a.value.length
-        let steps = ((b.value % length) + length) % length // posistive mod length
-        return toList(a.value.slice(steps).concat(a.value.slice(0, steps)))
+        let length = a.length
+        let steps = ((b.toNumber() % length) + length) % length // posistive mod length
+        // return toList(a.value.slice(steps).concat(a.value.slice(0, steps)))
+        return a.drop(steps).concat(a.take(steps))
     }
     if(isString(a)){
         let length = a.value.length
