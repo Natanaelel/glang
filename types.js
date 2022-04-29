@@ -242,6 +242,21 @@ class GList {
         }
         return new GList(get_at, () => this.get_size()) // could be incorrect
     }
+    // fix !! doesn't work !!
+    take_while(predicate){
+        let taken = []
+        let last_index = 0
+        const get_at = (self, index) => {
+            for(let _i = Math.min(index, taken.length); _i <= index; _i++){
+                if(!predicate(this.at(_i))){
+                    throw new GListError("index too large")
+                }
+                taken.push(this.at(_i))
+            }
+            return taken[index]
+        }
+        return new GList(get_at, () => this.get_size()) // could be incorrect
+    }
     head(){
         return this.at(0)
     }
@@ -263,17 +278,24 @@ class GList {
             return this.get_size()
         })
     }
-    take_while(predicate){ // recurively defined
-        const get_at = (self, index) => {    
-            if(predicate(this.at(index))){
-                if(index == 0) return this.at(index) // base case here
-                if(predicate(this.at(index - 1))) return this.at(index) // recursion here
-                throw new GListError("index too large")
-            }
-            throw new GListError("index too large")
-        }
-        return new GList(get_at, () => this.get_size())
-    }
+    // take_while(predicate){ // recurively defined
+    //     // const get_at = (self, index) => {    
+    //     //     if(predicate(this.at(index))){
+    //     //         if(index == 0) return this.at(index) // base case here
+    //     //         if(predicate(this.at(index - 1))) return this.at(index) // recursion here
+    //     //         throw new GListError("index too large")
+    //     //     }
+    //     //     throw new GListError("index too large")
+    //     // }
+    //     // return new GList(get_at, () => this.get_size())
+    //     const get_at = (self, index) => {
+    //         if(index == 0 && predicate(this.at(0))) return this.at(0) // base case here
+    //         // if(predicate(this.at(index - 1))) return this.at(index) // recursion here
+    //         if(predicate(self.at(index - 1))) return this.at(index) // recursion here
+    //         throw new GListError("index too large")
+    //     }
+    //     return new GList(get_at, () => this.get_size())    
+    // }
     drop(num){
         const get_at = (self, index) => this.at(index + num)
         return new GList(get_at, () => this.get_size() - num)
@@ -287,7 +309,7 @@ class GList {
             result = func(this)
             return result.at(index)
         }
-        return new GList(get_at, () => this.get_size())
+        return new GList(get_at)
     }
     concat(other){
         const get_at = (self, index) => {
@@ -422,6 +444,16 @@ class GList {
         }
 
         return new GList(get_at, () => this.get_size() / len)
+    }
+    consSlicesOfLength(len){
+        const get_at = (self, index) => {
+            const get_at2 = (self2, index2) => {
+                return this.at(index + index2)
+            }
+            return new GList(get_at2, () => len)
+        }
+
+        return new GList(get_at, () => this.get_size() - len + 1)
     }
     static zipWith(func, a, b){
         const get_at = (self, index) => {

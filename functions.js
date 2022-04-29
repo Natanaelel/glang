@@ -329,7 +329,8 @@ const split = (a, b) => {
 const join = (a, b) => {
     if(isString(b)){
         if(isString(a)) return a
-        if(isList(a)) return toString(a.value.map(x => join(x, b).value).join(b.value))
+        // if(isList(a)) return toString(a.value.map(x => join(x, b).value).join(b.value))
+        if(isList(a)) return toString(a.map(x => join(x, b).value).to_array().join(b.value))
         return toString(stringify(a))
     }
 }
@@ -403,6 +404,19 @@ const slice = (a, b) => {
         let result = []
         for(let i = 0; i < a.value.length; i += b.value){
             result.push(a.value.slice(i, i + b.value))
+        }
+        return toList(result.map(toString))
+    }
+}
+const cons_slice = (a, b) => {
+    if(!isNumber(b)) return
+    if(isList(a)){
+        return a.consSlicesOfLength(b.toNumber())
+    }
+    if(isString(a)){ // untested, as most things lol
+        let result = []
+        for(let i = 0; i < a.value.length - a.toNumber(); i ++){
+            result.push(a.value.slice(i, i + b.toNumber()))
         }
         return toList(result.map(toString))
     }
@@ -659,20 +673,14 @@ const int = (a) => {
 }
 const uniq = (a) => {
     if(isList(a)){
-        let result = []
-        a.to_array().forEach(el => {
-            if(result.every(e => !e.equals(el))) result.push(el)
-        })
-        return GList.from(result)
-        // if(a.all(isInt)){
-        //     return toList([...new Set(a.value.map(e => e.value))].map(toInt))
-        // }
-        // if(a.value.every(isFloat)){
-        //     return toList([...new Set(a.value.map(e => e.value))].map(toFloat))
-        // }
-        // if(a.value.every(isString)){
-        //     return toList([...new Set(a.value.map(e => e.value))].map(toString))
-        // }
+        const func = (self) => {
+            let result = []
+            self.to_array().forEach(el => {
+                if(result.every(e => !e.equals(el))) result.push(el)
+            })
+            return GList.from(result)
+        }
+        return a.call(func)
     }
 }
 
@@ -877,6 +885,44 @@ const and = (a, b) => {
 const or = (a, b) => {
     return toInt(isTruthy(a) || isTruthy(b) ? 1 : 0)
 }
+const digits = (a) => {
+    if(isInt(a)){
+        let n = a.value + 0n
+        let dig = []
+        while(n > 0n){
+            dig.push(toInt(n % 10n))
+            n /= 10n
+        }
+        return GList.from(dig.reverse())
+    }
+    if(isList(a)){
+        let n = toInt(0)
+        a.to_array().forEach(el => {
+            n = plus(multiply(n, toInt(10)), el)
+        })
+        return n
+    }
+}
+const abs = (a) => {
+    if(isInt(a)) return toInt(a.value < 0 ? -a.value : a.value)
+    if(isFloat(a)) return toFloat(a.value < 0 ? -a.value : a.value)
+}
+const uniq_prefix = (a) => {
+    const func = (self) => {
+        let seen = []
+        let i = 0;
+        while(true){
+            let el = self.at(i)
+            let has_seen = seen.some(e => e.equals(el))
+            if(has_seen){
+                return GList.from(seen)
+            }
+            seen.push(el)
+            i++
+        }
+    }
+    return a.call(func)
+}
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -942,6 +988,7 @@ const functions = {
     scan,
     "int": arity(int, 1, 1),
     "uniq": arity(uniq, 1, 1),
+    "uniqprefix": arity(uniq_prefix, 1, 1),
     "get": arity(web_get, 1, 1),
     "sign": arity(sign, 1, 1),
     "not": arity(not, 1, 1),
@@ -966,6 +1013,9 @@ const functions = {
     "show": arity(show, 1, 1),
     "and": arity(and, 2, 1),
     "or": arity(or, 2, 1),
+    "digits": arity(digits, 1, 1),
+    "cons": arity(cons_slice, 2, 1),
+    "abs": arity(abs, 1, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -1007,6 +1057,7 @@ const functions_compact = {
     "z": functions["zipwith"],
     "T": functions["transpose"],
     "C": functions["slice"],
+    "X": functions["cons"],
     "Σ": functions["sum"],
     "∫": functions["cumsum"],
     "Π": functions["product"],
@@ -1021,6 +1072,7 @@ const functions_compact = {
     "◄": functions["minby"],
     "…": functions["to"],
     "u": functions["uniq"],
+    "U": functions["uniqprefix"],
     "¬": functions["not"],
     "#": functions["count"],
     "c": functions["chr"],
@@ -1048,6 +1100,9 @@ const functions_compact = {
     "i": functions["index"],
     "&": functions["and"],
     "|": functions["or"],
+    "d": functions["digits"],
+    "a": functions["abs"],
+    "≡": functions["matches"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     "odd": arity(odd, 1, 1),
