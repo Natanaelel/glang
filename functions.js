@@ -271,7 +271,6 @@ const max = (a) => {
 const min = (a) => {
     if(isList(a)) return a.reduce((x, y) => x.compareTo(y) == -1 ? x : y)
 }
-// const min = (a) => defs.max_by(a.value, e => -e.value)
 const wrap = (stack) => {
     let stack_content = [...stack.stack]
     stack.clear()
@@ -429,13 +428,12 @@ const sum = (a) => {
 }
 const cumsum = (a) => {
     if(isList(a)){
-        // return a.inits().map(el => el.call(sum))
-        return a.inits().map(sum)
+        return a.scan(plus)
     }
 }
 const product = (a) => {
     if(isList(a)){
-        return a.reduce((x, y) => multiply(x, y))
+        return a.reduce(multiply)
     }
 }
 const iteraten = (stack, self) => {
@@ -535,36 +533,58 @@ const rotate = (a, b) => {
     }
 }
 const maxby = (stack, self) => {
-    let b = stack.pop() // arr
-    let a = stack.pop() // func
+    let b = stack.pop() // func
+    let a = stack.pop() // arr
 
     if(isList(a) && isBlock(b)){
-        let result = defs.max_by(a.value, e => {
-            stack.push(e)
+        let last_result = null
+        let result = a.reduce((x, y) => {
+            let x_result
+            if(last_result){
+                x_result = last_result
+            }else{
+                stack.push(x)
+                applyBlock(b, stack, self)
+                x_result = stack.pop()
+            }
+            stack.push(y)
             applyBlock(b, stack, self)
-            return stack.pop().value
+            let y_result = stack.pop()
+            let max = x_result.compareTo(y_result) == 1 ? x : y
+            last_result = y_result
+            return max
         })
         stack.push(result)
         return
     }
-
 
     error("maxby", a, b)
 }
 const minby = (stack, self) => {
-    let b = stack.pop() // arr
-    let a = stack.pop() // func
+    let b = stack.pop() // func
+    let a = stack.pop() // arr
 
     if(isList(a) && isBlock(b)){
-        let result = defs.min_by(a.value, e => {
-            stack.push(e)
+        let last_result = null
+        let result = a.reduce((x, y) => {
+            let x_result
+            if(last_result){
+                x_result = last_result
+            }else{
+                stack.push(x)
+                applyBlock(b, stack, self)
+                x_result = stack.pop()
+            }
+            stack.push(y)
             applyBlock(b, stack, self)
-            return stack.pop().value
+            let y_result = stack.pop()
+            let max = x_result.compareTo(y_result) == -1 ? x : y
+            last_result = y_result
+            return max
         })
         stack.push(result)
         return
     }
-
 
     error("minby", a, b)
 }
