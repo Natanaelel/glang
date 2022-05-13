@@ -32,6 +32,7 @@ let settings = {
 let g = new Glang(program, settings)
 g.run()
 // console.log(g)
+// console.log(g.stack.stack.pop()+"")
 console.log(g.stack.pretty())
 console.log("")
 console.log(g.stack.top())

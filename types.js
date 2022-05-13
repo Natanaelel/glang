@@ -137,8 +137,8 @@ class GList {
         return this.size
     }
     _findOutLength(max_length = Infinity){
-
-        for(let i = 0;i <= max_length; i++){
+        let i;
+        for(i = 0; i <= max_length; i++){
             if(i in this.list){
                 continue
             }
@@ -157,8 +157,12 @@ class GList {
     _isLengthGreaterThan(compare_len){
         for(let i = 0; true; i++){
             if(i > compare_len) return true
+            // return true
             try{
-                this.at(i)
+                // this.at(i)
+                if(i < 0){ throw new GListError("index too small") }
+                if(!(i in this.list)) this.func(this, i)
+                
             }catch(e){
                 if(!(e instanceof GListError)) throw e
                 return false
@@ -273,6 +277,7 @@ class GList {
     }
     take(num){
         const get_at = (self, index) => this.at(index)
+        return new GList(get_at, () => num)
         return new GList(get_at, () => {
             if(this._isLengthGreaterThan(num)) return num
             return this.get_size()
@@ -455,6 +460,21 @@ class GList {
 
         return new GList(get_at, () => this.get_size() - len + 1)
     }
+    get [Symbol.iterator](){
+        return function*(){
+            let i = 0;
+            while(true){
+                try{
+                    yield this.at(i)
+                }
+                catch(e){
+                    if(!(e instanceof GListError)) throw e
+                    break
+                }
+                i++
+            }
+        }
+    }
     static zipWith(func, a, b){
         const get_at = (self, index) => {
             return func(a.at(index), b.at(index))
@@ -486,10 +506,10 @@ class GList {
     static pure(element){
         return GList.from([element])
     }
+
     static naturals = new GList((_, i) => i + 1, () => Infinity)
     static reals = new GList((_, i) => 0 + (((i & 1) << 1) -1) * ((i + 1) >> 1), () => Infinity)
     static empty = GList.from([])
-    
 }
 
 class GBlock {
@@ -525,5 +545,6 @@ module.exports = {
     GFloat,
     GString,
     GList,
-    GBlock
+    GBlock,
+    GListError
 }

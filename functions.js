@@ -5,7 +5,7 @@ const defs = require("./defs.js")
 const { XMLHttpRequest } = require("xmlhttprequest")
 
 const { Lazylist } = require("./infinitely_lazy/lazylist.js")
-const { GInt, GFloat, GString, GList, GBlock } = require("./types.js")
+const { GInt, GFloat, GString, GList, GBlock, GListError} = require("./types.js")
 
 // const toInt = a => ({"type": "int", "value": parseInt(a)})
 const toInt = a => new GInt(a)
@@ -261,10 +261,9 @@ const length = (a) => {
     if(isString(a)) return toInt(a.value.length)
     if(isList(a)) return toInt(a.length)
     if(isNumber(a)) return toInt(a.value.toString().length)
-
 }
-const dup = (a) => [deepClone(a), deepClone(a)]
-const over = (a, b) => [a, b, deepClone(a)]
+const dup = (a) => [a, a]
+const over = (a, b) => [a, b, a]
 const max = (a) => {
     if(isList(a)) return a.reduce((x, y) => x.compareTo(y) == 1 ? x : y)
 }
@@ -381,10 +380,20 @@ const less_than = (a, b) => {
     let false_val = toInt(0)
     if(isNumber(a) && isNumber(b)) return a.value < b.value ? true_val : false_val
 }
+const less_than_or_equal = (a, b) => {
+    let true_val = toInt(1)
+    let false_val = toInt(0)
+    if(isNumber(a) && isNumber(b)) return a.value <= b.value ? true_val : false_val
+}
 const greater_than = (a, b) => {
     let true_val = toInt(1)
     let false_val = toInt(0)
     if(isNumber(a) && isNumber(b)) return a.value > b.value ? true_val : false_val
+}
+const greater_than_or_equal = (a, b) => {
+    let true_val = toInt(1)
+    let false_val = toInt(0)
+    if(isNumber(a) && isNumber(b)) return a.value >= b.value ? true_val : false_val
 }
 const transpose = (a) => {
     if(isList(a) && isList(a.at(0))) return a.transpose()
@@ -747,8 +756,10 @@ const count = (stack, self) => {
 }
 const index = (a, b) => {
     if(isList(a)){
-        for(let i = 0; i < a.value.length; i++){
-            if(equals(a.value[i], b).value == 1) return toInt(i)
+        let i = 0
+        for(let value of a){
+            if(value.equals(b)) return toInt(i)
+            i++
         }
         return toInt(-1)
     }
@@ -943,6 +954,14 @@ const uniq_prefix = (a) => {
     }
     return a.call(func)
 }
+const is_prime = (a) => {
+    if(!isInt(a)) return
+    if(a.value < 2n) return toInt(0)
+    for(let i = 2n; i + 1n < a.value; i++){
+        if(a.value % i == 0) return toInt(0)
+    }
+    return toInt(1)
+}
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -982,6 +1001,8 @@ const functions = {
     "not_equals": arity(not_equals, 2, 1),
     "<": arity(less_than, 2, 1),
     ">": arity(greater_than, 2, 1),
+    "≤": arity(less_than_or_equal, 2, 1),
+    "≥": arity(greater_than_or_equal, 2, 1),
     zipwith,
     "transpose": arity(transpose, 1, 1),
     "slice": arity(slice, 2, 1),
@@ -1036,6 +1057,7 @@ const functions = {
     "digits": arity(digits, 1, 1),
     "cons": arity(cons_slice, 2, 1),
     "abs": arity(abs, 1, 1),
+    "prime": arity(is_prime, 1, 1),
 }
 const functions_compact = {
     "+": functions["+"],
@@ -1074,6 +1096,8 @@ const functions_compact = {
     "≠": functions["not_equals"],
     "<": functions["<"],
     ">": functions[">"],
+    "≤": functions["≤"],
+    "≥": functions["≥"],
     "z": functions["zipwith"],
     "T": functions["transpose"],
     "C": functions["slice"],
@@ -1123,6 +1147,7 @@ const functions_compact = {
     "d": functions["digits"],
     "a": functions["abs"],
     "≡": functions["matches"],
+    "p": functions["prime"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     "odd": arity(odd, 1, 1),
