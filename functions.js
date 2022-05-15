@@ -772,7 +772,7 @@ const index = (a, b) => {
     return
 }
 const chr = (a) => {
-    if(isNumber(a)) return toString(String.fromCharCode(Math.floor(a.value)))
+    if(isNumber(a)) return toString(String.fromCharCode(Math.floor(a.toNumber())))
     if(isList(a)) return toList(a.value.map(chr))
 }
 const ord = (a) => {

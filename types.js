@@ -110,7 +110,7 @@ class GString {
 class GListError extends Error {}
 
 class GList {
-    constructor(func, get_size = Infinity){
+    constructor(func, get_size = Infinity, size = null){
         if(func instanceof GList){
             return func
         }
@@ -121,7 +121,7 @@ class GList {
         this.func = func // func = (this, index) => element
         this.get_size = typeof get_size == "function" ? get_size : (() => this._findOutLength(get_size))
         this.list = []
-        this.size = null
+        this.size = size
 
         this.type = "list"
     }
