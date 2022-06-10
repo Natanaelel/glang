@@ -777,12 +777,12 @@ const chr = (a) => {
 }
 const ord = (a) => {
     if(isString(a)){
-        if([...a.value].length == 1){ // return single int
+        if([...a.toString()].length == 1){ // return single int
             return toInt(a.value.charCodeAt())
         }
-        return toList(a.value.map(x => toInt(x.charCodeAt()))) // return codepoint list
+        return toList(a.map(x => toInt(x.charCodeAt()))) // return codepoint list
     }
-    if(isList(a)) return toList(a.value.map(ord))
+    if(isList(a)) return toList(a.map(ord))
 }
 const chars = (a) => {
     if(isString(a)) return toList([...a.value].map(toString))
@@ -962,6 +962,17 @@ const is_prime = (a) => {
     }
     return toInt(1)
 }
+const do_func = (stack, self) => {
+    let name = stack.pop()
+    if(!isString(name)) return
+    let func = functions[name.toString()]
+    if(func) func(stack)
+}
+const javascript = (stack, self) => {
+    let code = stack.pop()
+    if(!isString(code)) return
+    eval(code.toString())
+}
 
 const functions = {
     "+": arity(plus, 2, 1),
@@ -1058,6 +1069,8 @@ const functions = {
     "cons": arity(cons_slice, 2, 1),
     "abs": arity(abs, 1, 1),
     "prime": arity(is_prime, 1, 1),
+    "do_func": do_func,
+    javascript
 }
 const functions_compact = {
     "+": functions["+"],
@@ -1148,6 +1161,7 @@ const functions_compact = {
     "a": functions["abs"],
     "≡": functions["matches"],
     "p": functions["prime"],
+    "§": functions["do_func"],
     "chars": arity(chars, 1, 1),
     "divisors": arity(divisors, 1, 1),
     "odd": arity(odd, 1, 1),

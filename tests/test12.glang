@@ -1,0 +1,9 @@
+"Welcome to Programming Puzzles and Code Golf Stackexchange!
+"It is a website ->"
+,"\n"J
+"abcdefghijklmnopqrstuvwxyz" "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ"
+
+"functions_compact['q'] = arity(a=>isInt(a) ? toInt(1) : toInt(0), 1, 1)" "javascript" §
+"functions_compact['c'] = functions['chars']" "javascript" §
+
+// W↔`"chars"§{;;i,D→0 1-={←}{→}?}M {Dq{$c$@}{$~}?}MΣ
